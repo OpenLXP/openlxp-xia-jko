@@ -22,3 +22,7 @@ numpy>= 1.19.5, < 1.20.0
 s3fs
 
 requests~=2.25.1
+
+xlrd==1.2.0
+
+openpyxl
