@@ -30,6 +30,7 @@ def add_publisher_to_source(source_df, publisher):
     """
     source_df['SOURCESYSTEM'] = publisher
     source_data_dict = source_df.to_dict(orient='index')
+
     # returning source metadata as dictionary
     return source_data_dict
 
@@ -71,13 +72,13 @@ def extract_metadata_using_key(source_data_dict):
         hash_value = hashlib.md5(str(temp_val).encode('utf-8')).hexdigest()
         for k1, v1 in source_data_dict[temp_key].items():
             # Key value creation for source metadata
-            key_value = \
+            key = \
                 get_source_metadata_key_value(k1, source_data_dict[temp_key])
-            key_value_hash = hashlib.md5(
-                            key_value.encode('utf-8')).hexdigest()
-        # Call store function with key, hash of key, hash of metadata, metadata
-        store_source_metadata(key_value, key_value_hash, hash_value,
-                              temp_val)
+            # Call store function with key, hash of key, hash of metadata,
+            # metadata
+
+        store_source_metadata(key['key_value'], key['key_value_hash'],
+                              hash_value, temp_val)
 
 
 class Command(BaseCommand):
