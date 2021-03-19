@@ -18,7 +18,7 @@ class XIAConfiguration(models.Model):
         help_text='Enter the JKO '
                   'schema file')
     source_target_mapping = models.CharField(
-        default='p2881_target_metadata_schema.json', max_length=200,
+        default='JKO_p2881_target_metadata_schema.json', max_length=200,
         help_text='Enter the schema '
                   'file to map '
                   'target.')

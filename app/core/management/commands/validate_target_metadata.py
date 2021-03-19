@@ -63,13 +63,14 @@ def get_target_metadata_for_validation():
 
 def store_target_metadata_validation_status(target_data_dict, key_value_hash,
                                             validation_result,
-                                            record_status_result='Inactive'):
+                                            record_status_result):
     """Storing validation result in MetadataLedger"""
     target_data_dict.filter(
         target_metadata_key_hash=key_value_hash).update(
         target_metadata_validation_status=validation_result,
         target_metadata_validation_date=timezone.now(),
-        record_lifecycle_status=record_status_result)
+        record_lifecycle_status=record_status_result,
+        metadata_record_inactivation_date=timezone.now())
 
 
 def validate_target_using_key(target_data_dict, required_dict,

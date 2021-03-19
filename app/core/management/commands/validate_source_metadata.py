@@ -55,7 +55,8 @@ def store_source_metadata_validation_status(source_data_dict,
         source_metadata_key_hash=key_value_hash).update(
         source_metadata_validation_status=validation_result,
         source_metadata_validation_date=timezone.now(),
-        record_lifecycle_status=record_status_result
+        record_lifecycle_status=record_status_result,
+        metadata_record_inactivation_date=timezone.now()
     )
 
 
