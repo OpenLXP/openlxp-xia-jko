@@ -27,7 +27,7 @@ class XIAConfiguration(models.Model):
         help_text='Enter the target '
                   'schema file to '
                   'validate from.')
-    source_file = models.FileField(blank=True, help_text='Upload the source '
+    source_file = models.FileField( help_text='Upload the source '
                                                          'file')
 
     def get_absolute_url(self):
