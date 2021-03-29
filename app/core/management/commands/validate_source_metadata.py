@@ -1,9 +1,14 @@
 import logging
-from django.core.management.base import BaseCommand
-from core.models import XIAConfiguration
-from core.models import MetadataLedger
+
+from core.management.utils.xia_internal import (check_validation_value,
+                                                checkdict, checklist,
+                                                create_required_list,
+                                                get_source_metadata_key_value,
+                                                required_recommended_logs,
+                                                valdict, vallist)
 from core.management.utils.xss_client import read_json_data
-from core.management.utils.xia_internal import get_source_metadata_key_value
+from core.models import MetadataLedger, XIAConfiguration
+from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 logger = logging.getLogger('dict_config_logger')
@@ -23,11 +28,17 @@ def get_source_validation_schema():
 def get_required_fields_for_source_validation(schema_data_dict):
     """Creating list of fields which are Required"""
     required_column_name = list()
-
-    for temp_k, temp_v in schema_data_dict.items():
-        if temp_v == 'Required':
-            required_column_name.append(temp_k)
-
+    for element in schema_data_dict:
+        # If schema dict value is a Nested Json
+        if isinstance(schema_data_dict[element], dict):
+            checkdict(schema_data_dict[element], element, required_column_name)
+        # If schema dict value is a list
+        elif isinstance(schema_data_dict[element], list):
+            checklist(schema_data_dict[element], element, required_column_name)
+        # If schema dict value is a string
+        elif isinstance(schema_data_dict[element], str):
+            create_required_list(schema_data_dict[element], element,
+                                 required_column_name)
     return required_column_name
 
 
@@ -60,6 +71,36 @@ def store_source_metadata_validation_status(source_data_dict,
     )
 
 
+def source_metadata_value_for_validation(
+        ind, data_dict, required_column_name_list, validation_result):
+    """function to navigate to value in source metadata to be validated """
+    # If data value is a dictionary
+    if isinstance(data_dict[required_column_name_list[0]], dict):
+        valdict(ind, data_dict[required_column_name_list[0]],
+                required_column_name_list[1:], required_column_name_list[0],
+                validation_result)
+
+    # If data is a list
+    elif isinstance(data_dict[required_column_name_list[0]], list):
+        vallist(ind, data_dict[required_column_name_list[0]],
+                required_column_name_list[1:], required_column_name_list[0],
+                validation_result)
+
+    # If data value is a string or NoneType
+    else:
+        validation_result = check_validation_value(ind,
+                                                   data_dict[
+                                                       required_column_name_list[
+                                                           0]],
+                                                   required_column_name_list[
+                                                       0],
+                                                   required_column_name_list[
+                                                       0],
+                                                   validation_result)
+
+    return validation_result
+
+
 def validate_source_using_key(source_data_dict, required_column_name):
     """Validating source data against required column names"""
 
@@ -70,24 +111,28 @@ def validate_source_using_key(source_data_dict, required_column_name):
         validation_result = 'Y'
         record_status_result = 'Active'
         for table_column_name in source_data_dict[ind]:
-            for column in source_data_dict[ind][table_column_name]:
-                if column in required_column_name:
-                    # Key creation for source metadata
-                    key = \
-                        get_source_metadata_key_value(column,
-                                                      source_data_dict[ind]
-                                                      [table_column_name])
+            # looping in source metadata
+            for item in required_column_name:
+                # looping through elements in required column list
+                data_dict = source_data_dict[ind][table_column_name]
+                # creating list of key values to access required value split
+                # by .
+                item_list = item.split('.')
+                # function to navigate to required values and validate
+                validation_result = \
+                    source_metadata_value_for_validation(
+                        ind, data_dict, item_list,
+                        validation_result)
 
-                    # Checking if value present in required fields
-                    if not source_data_dict[ind][table_column_name][column]:
-                        logger.error(
-                            "Record " + str(
-                                ind) + " does not have all REQUIRED "
-                                       "fields. "
-                            + column + " field is empty")
-                        # Update validation result if not validated
-                        validation_result = 'N'
-                        record_status_result = 'Inactive'
+            # if validation fails for record record status is
+            # Update to record status to inactive if record is invalid
+            if validation_result == 'N':
+                record_status_result = 'Inactive'
+
+            # Key creation for source metadata
+            key = \
+                get_source_metadata_key_value(source_data_dict[ind]
+                                              [table_column_name])
         # Calling function to update validation status
         store_source_metadata_validation_status(source_data_dict,
                                                 key['key_value_hash'],
@@ -103,8 +148,8 @@ class Command(BaseCommand):
             Source data is validated and stored in metadataLedger
         """
         schema_data_dict = get_source_validation_schema()
-        required_column_name = get_required_fields_for_source_validation\
-            (schema_data_dict)
+        required_column_name = \
+            get_required_fields_for_source_validation(schema_data_dict)
         source_data_dict = get_source_metadata_for_validation()
         validate_source_using_key(source_data_dict, required_column_name)
 

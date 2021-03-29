@@ -1,14 +1,13 @@
 import hashlib
-import pandas as pd
 import logging
-from django.core.management.base import BaseCommand
-from core.models import XIAConfiguration
-from core.models import MetadataLedger
-from django.utils import timezone
+
+import pandas as pd
+from core.management.utils.xia_internal import (get_target_metadata_key_value,
+                                                replace_field_on_target_schema)
 from core.management.utils.xss_client import read_json_data
-from core.management.utils.xia_internal import get_key_dict, \
-    get_target_metadata_key_value, \
-    replace_field_on_target_schema
+from core.models import MetadataLedger, XIAConfiguration
+from django.core.management.base import BaseCommand
+from django.utils import timezone
 
 logger = logging.getLogger('dict_config_logger')
 
@@ -86,7 +85,6 @@ def transform_source_using_key(source_data_dict, target_mapping_dict):
     len_source_metadata = len(source_data_dict)
     for ind in range(len_source_metadata):
         for table_column_name in source_data_dict[ind]:
-            # Create dataframe using target metadata schema
 
             target_data_dict = create_target_metadata_dict(target_mapping_dict,
                                                            source_data_dict
@@ -94,29 +92,21 @@ def transform_source_using_key(source_data_dict, target_mapping_dict):
                                                            [table_column_name])
             # Looping through target values in dictionary
             for ind1 in target_data_dict:
-                key = get_key_dict(None, None)
+                # Replacing values in field referring target schema
+                replace_field_on_target_schema(ind1,
+                                               target_data_dict)
+                # Key creation for target metadata
+                key = get_target_metadata_key_value(target_data_dict[ind1])
 
-                for target_section_name in target_data_dict[ind1]:
-                    for target_field_name in \
-                            target_data_dict[ind1][target_section_name]:
-                        # Replacing values in field referring target schema
-                        replace_field_on_target_schema(ind1,
-                                                       target_section_name
-                                                       , target_field_name,
-                                                       target_data_dict)
-                        # Key creation for target metadata
-                        key = get_target_metadata_key_value(
-                            target_field_name, target_data_dict[ind1]
-                            [target_section_name])
-
-                    if key['key_value']:
-                        hash_value = hashlib.md5(
-                            str(target_data_dict[ind1]).encode(
-                                'utf-8')).hexdigest()
-                        store_transformed_source_metadata(key['key_value'],
-                                                          key['key_value_hash'],
-                                                          target_data_dict[ind1],
-                                                          hash_value)
+                hash_value = hashlib.md5(
+                    str(target_data_dict[ind1]).encode(
+                        'utf-8')).hexdigest()
+                store_transformed_source_metadata(key['key_value'],
+                                                  key[
+                                                      'key_value_hash'],
+                                                  target_data_dict[
+                                                      ind1],
+                                                  hash_value)
 
 
 class Command(BaseCommand):

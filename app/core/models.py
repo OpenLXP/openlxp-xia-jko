@@ -1,8 +1,8 @@
 import uuid
-from django.db import models
-from django.urls import reverse
-from django.forms import ValidationError
 
+from django.db import models
+from django.forms import ValidationError
+from django.urls import reverse
 
 # def user_directory_path(instance, filename):
 #     # file will be uploaded to MEDIA_ROOT / user_<id>/<filename>

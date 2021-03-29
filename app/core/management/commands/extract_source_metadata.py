@@ -1,10 +1,10 @@
 import hashlib
 import logging
-from django.core.management.base import BaseCommand
-from core.models import XIAConfiguration
-from core.models import MetadataLedger
-from core.management.utils.xsr_client import read_source_file
+
 from core.management.utils.xia_internal import get_source_metadata_key_value
+from core.management.utils.xsr_client import read_source_file
+from core.models import MetadataLedger, XIAConfiguration
+from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 logger = logging.getLogger('dict_config_logger')
@@ -52,14 +52,12 @@ def store_source_metadata(key_value, key_value_hash, hash_value, metadata):
         record_lifecycle_status='Inactive')
 
     # Retrieving existing records or creating new record to MetadataLedger
-    MetadataLedger.objects.get_or_create(source_metadata_key=key_value,
-                                         source_metadata_key_hash=
-                                         key_value_hash,
-                                         source_metadata=metadata,
-                                         source_metadata_hash=
-                                         hash_value,
-                                         record_lifecycle_status=
-                                         'Active')
+    MetadataLedger.objects.get_or_create(
+        source_metadata_key=key_value,
+        source_metadata_key_hash=key_value_hash,
+        source_metadata=metadata,
+        source_metadata_hash=hash_value,
+        record_lifecycle_status='Active')
 
 
 def extract_metadata_using_key(source_data_dict):
@@ -70,13 +68,12 @@ def extract_metadata_using_key(source_data_dict):
     for temp_key, temp_val in source_data_dict.items():
         # creating hash value of metadata
         hash_value = hashlib.md5(str(temp_val).encode('utf-8')).hexdigest()
-        for k1, v1 in source_data_dict[temp_key].items():
-            # Key value creation for source metadata
-            key = \
-                get_source_metadata_key_value(k1, source_data_dict[temp_key])
-            # Call store function with key, hash of key, hash of metadata,
-            # metadata
+        # key dictionary creation function called
+        key = \
+            get_source_metadata_key_value(source_data_dict[temp_key])
 
+        # Call store function with key, hash of key, hash of metadata,
+        # metadata
         store_source_metadata(key['key_value'], key['key_value_hash'],
                               hash_value, temp_val)
 
