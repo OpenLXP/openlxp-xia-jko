@@ -120,53 +120,18 @@ def required_recommended_logs(id_num, category, field):
             + field + " field is empty")
 
 
-def checklist(ele, prefix, required_column_name):
-    """Navigates through list for required_column_list"""
-    for i in range(len(ele)):
-        if isinstance(ele[i], list):
-            checklist(ele[i], prefix,
-                      required_column_name)
-        elif isinstance(ele[i], str):
-            create_required_list(ele[i], prefix,
-                                 required_column_name)
-        else:
-            checkdict(ele[i], prefix,
-                      required_column_name)
-
-
-def checkdict(jsonObject, prefix, required_column_name):
-    """Navigates through dictionary for required_column_list"""
-    for ele in jsonObject:
-        if isinstance(jsonObject[ele], dict):
-            checkdict(jsonObject[ele], prefix + "." + ele,
-                      required_column_name)
-
-        elif isinstance(jsonObject[ele], list):
-            checklist(jsonObject[ele], prefix + "." + ele,
-                      required_column_name)
-
-        elif isinstance(jsonObject[ele], str):
-            create_required_list(jsonObject[ele], prefix + "." + ele,
-                                 required_column_name)
-
-
-def create_required_list(ele, prefix, required_column_name):
-    """creates required_column_list using path of keys to element required"""
-    if ele == 'Required':
-        required_column_name.append(prefix)
-
-
-def valdict(ind, jsonObject, required_column_name, prefix, validation_result):
+def check_dict(ind, jsonObject, required_column_name, prefix,
+               validation_result):
     """Navigates through dictionary for validation"""
     if isinstance(jsonObject[required_column_name[0]], dict):
-        valdict(ind, jsonObject[required_column_name[0]],
-                required_column_name[1:],
-                prefix + "." + required_column_name[0], validation_result)
+        check_dict(ind, jsonObject[required_column_name[0]],
+                   required_column_name[1:],
+                   prefix + "." + required_column_name[0], validation_result)
 
     elif isinstance(jsonObject[required_column_name[0]], list):
-        vallist(ind, jsonObject[required_column_name[0]],
-                required_column_name[1:],
-                prefix + "." + required_column_name[0], validation_result)
+        check_list(ind, jsonObject[required_column_name[0]],
+                   required_column_name[1:],
+                   prefix + "." + required_column_name[0], validation_result)
 
     elif isinstance(jsonObject[required_column_name[0]], str):
         check_validation_value(ind, jsonObject[required_column_name[0]],
@@ -175,15 +140,15 @@ def valdict(ind, jsonObject, required_column_name, prefix, validation_result):
                                validation_result)
 
 
-def vallist(ind, ele, required_column_name, prefix, validation_result):
+def check_list(ind, ele, required_column_name, prefix, validation_result):
     """Navigates through list for validation"""
     for i in range(len(ele)):
         if isinstance(ele[i][required_column_name[0]], list):
 
-            vallist(ind, ele[i][required_column_name[0]],
-                    required_column_name[1:],
-                    prefix + "[" + str(i) + "]." + required_column_name[0],
-                    validation_result)
+            check_list(ind, ele[i][required_column_name[0]],
+                       required_column_name[1:],
+                       prefix + "[" + str(i) + "]." + required_column_name[0],
+                       validation_result)
 
         elif isinstance(ele[i][required_column_name[0]], str):
 
@@ -193,8 +158,8 @@ def vallist(ind, ele, required_column_name, prefix, validation_result):
                                    required_column_name[0],
                                    validation_result)
         else:
-            valdict(ind, ele[i][required_column_name[0]],
-                    required_column_name[1:], prefix, validation_result)
+            check_dict(ind, ele[i][required_column_name[0]],
+                       required_column_name[1:], prefix, validation_result)
 
 
 def check_validation_value(ind, ele, required_column_name, prefix,

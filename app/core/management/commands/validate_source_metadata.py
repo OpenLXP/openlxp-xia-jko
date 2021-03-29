@@ -1,15 +1,14 @@
 import logging
 
-from core.management.utils.xia_internal import (check_validation_value,
-                                                checkdict, checklist,
-                                                create_required_list,
-                                                get_source_metadata_key_value,
-                                                required_recommended_logs,
-                                                valdict, vallist)
-from core.management.utils.xss_client import read_json_data
-from core.models import MetadataLedger, XIAConfiguration
 from django.core.management.base import BaseCommand
 from django.utils import timezone
+
+from core.management.utils.xia_internal import (get_source_metadata_key_value,
+                                                required_recommended_logs,
+                                                check_dict, check_list,
+                                                check_validation_value)
+from core.management.utils.xss_client import read_json_data
+from core.models import MetadataLedger, XIAConfiguration
 
 logger = logging.getLogger('dict_config_logger')
 
@@ -29,16 +28,9 @@ def get_required_fields_for_source_validation(schema_data_dict):
     """Creating list of fields which are Required"""
     required_column_name = list()
     for element in schema_data_dict:
-        # If schema dict value is a Nested Json
-        if isinstance(schema_data_dict[element], dict):
-            checkdict(schema_data_dict[element], element, required_column_name)
-        # If schema dict value is a list
-        elif isinstance(schema_data_dict[element], list):
-            checklist(schema_data_dict[element], element, required_column_name)
-        # If schema dict value is a string
-        elif isinstance(schema_data_dict[element], str):
-            create_required_list(schema_data_dict[element], element,
-                                 required_column_name)
+        # creates required_column_list using path of keys to element required
+        if schema_data_dict[element] == "Required":
+            required_column_name.append(element)
     return required_column_name
 
 
@@ -76,27 +68,24 @@ def source_metadata_value_for_validation(
     """function to navigate to value in source metadata to be validated """
     # If data value is a dictionary
     if isinstance(data_dict[required_column_name_list[0]], dict):
-        valdict(ind, data_dict[required_column_name_list[0]],
-                required_column_name_list[1:], required_column_name_list[0],
-                validation_result)
+        check_dict(ind, data_dict[required_column_name_list[0]],
+                   required_column_name_list[1:], required_column_name_list[0],
+                   validation_result)
 
     # If data is a list
     elif isinstance(data_dict[required_column_name_list[0]], list):
-        vallist(ind, data_dict[required_column_name_list[0]],
-                required_column_name_list[1:], required_column_name_list[0],
-                validation_result)
+        check_list(ind, data_dict[required_column_name_list[0]],
+                   required_column_name_list[1:], required_column_name_list[0],
+                   validation_result)
 
     # If data value is a string or NoneType
     else:
-        validation_result = check_validation_value(ind,
-                                                   data_dict[
-                                                       required_column_name_list[
-                                                           0]],
-                                                   required_column_name_list[
-                                                       0],
-                                                   required_column_name_list[
-                                                       0],
-                                                   validation_result)
+        validation_result =\
+            check_validation_value(ind,
+                                   data_dict[required_column_name_list[0]],
+                                   required_column_name_list[0],
+                                   required_column_name_list[0],
+                                   validation_result)
 
     return validation_result
 
