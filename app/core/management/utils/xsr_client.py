@@ -1,7 +1,7 @@
 import logging
-import os
 
 import pandas as pd
+
 from core.models import XIAConfiguration
 
 logger = logging.getLogger('dict_config_logger')
@@ -16,9 +16,3 @@ def read_source_file():
                                          None)
     file_name.delete()
     return std_source_df
-
-
-def get_xsr_endpoint():
-    """Setting API endpoint from XIA and XIS communication """
-    xsr_endpoint = os.environ.get('XSR_ENDPOINT')
-    return xsr_endpoint

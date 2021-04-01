@@ -1,13 +1,14 @@
-import logging
-from django.core.serializers.json import DjangoJSONEncoder
-from django.core.management.base import BaseCommand
-from core.models import XIAConfiguration, MetadataLedger
 import json
-from core.management.utils.xis_client import response_from_xis
-from django.utils import timezone
-from django.db.models import Q
-import requests
+import logging
 
+import requests
+from django.core.management.base import BaseCommand
+from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models import Q
+from django.utils import timezone
+
+from core.management.utils.xis_client import response_from_xis
+from core.models import MetadataLedger, XIAConfiguration
 
 logger = logging.getLogger('dict_config_logger')
 
@@ -37,12 +38,15 @@ def post_data_to_xis(data):
     for row in data:
         data = renaming_xia_for_posting_to_xis(row)
         renamed_data = json.dumps(data, cls=DjangoJSONEncoder)
+
         # Getting UUID to update target_metadata_transmission_status to pending
         uuid_val = data.get('unique_record_identifier')
+
         # Updating status in XIA metadata_ledger to 'Pending'
         MetadataLedger.objects.filter(
             metadata_record_uuid=uuid_val).update(
             target_metadata_transmission_status='Pending')
+
         # POSTing data to XIS
         try:
             xis_response = response_from_xis(renamed_data)
@@ -52,15 +56,15 @@ def post_data_to_xis(data):
             if xis_response.status_code == 201:
                 MetadataLedger.objects.filter(
                     metadata_record_uuid=uuid_val).update(
-                    target_metadata_transmission_status_code=
-                    xis_response.status_code,
+                    target_metadata_transmission_status_code=xis_response.
+                        status_code,
                     target_metadata_transmission_status='Successful',
                     target_metadata_transmission_date=timezone.now())
             else:
                 MetadataLedger.objects.filter(
                     metadata_record_uuid=uuid_val).update(
-                    target_metadata_transmission_status_code=
-                    xis_response.status_code,
+                    target_metadata_transmission_status_code=xis_response.
+                        status_code,
                     target_metadata_transmission_status='Failed',
                     target_metadata_transmission_date=timezone.now())
                 logger.warning(
@@ -82,12 +86,13 @@ def check_records_to_load_into_xis():
     data = combined_query.filter(
         record_lifecycle_status='Active',
         target_metadata_validation_status='Y').exclude(
-        target_metadata_transmission_status='400').values(
+        target_metadata_transmission_status_code=400).values(
         'metadata_record_uuid',
         'target_metadata',
         'target_metadata_hash',
         'target_metadata_key',
         'target_metadata_key_hash')
+
     # Checking available no. of records in XIA to load into XIS is Zero or not
     if len(data) == 0:
         logger.info("Data Loading in XIS is complete, Zero records are "

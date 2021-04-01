@@ -1,11 +1,12 @@
 import hashlib
 import logging
 
+from django.core.management.base import BaseCommand
+from django.utils import timezone
+
 from core.management.utils.xia_internal import get_source_metadata_key_value
 from core.management.utils.xsr_client import read_source_file
 from core.models import MetadataLedger, XIAConfiguration
-from django.core.management.base import BaseCommand
-from django.utils import timezone
 
 logger = logging.getLogger('dict_config_logger')
 

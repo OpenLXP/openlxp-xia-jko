@@ -2,12 +2,13 @@ import hashlib
 import logging
 
 import pandas as pd
+from django.core.management.base import BaseCommand
+from django.utils import timezone
+
 from core.management.utils.xia_internal import (get_target_metadata_key_value,
                                                 replace_field_on_target_schema)
 from core.management.utils.xss_client import read_json_data
 from core.models import MetadataLedger, XIAConfiguration
-from django.core.management.base import BaseCommand
-from django.utils import timezone
 
 logger = logging.getLogger('dict_config_logger')
 

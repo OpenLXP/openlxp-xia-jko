@@ -1,11 +1,12 @@
 import logging
 
+from django.core.management.base import BaseCommand
+from django.utils import timezone
+
 from core.management.utils.xia_internal import (get_target_metadata_key_value,
                                                 required_recommended_logs)
 from core.management.utils.xss_client import read_json_data
 from core.models import MetadataLedger, XIAConfiguration
-from django.core.management.base import BaseCommand
-from django.utils import timezone
 
 logger = logging.getLogger('dict_config_logger')
 
@@ -102,7 +103,6 @@ def validate_target_using_key(target_data_dict, required_dict,
             # Key creation for target metadata
             key = \
                 get_target_metadata_key_value(target_data_dict[ind][val])
-
             store_target_metadata_validation_status(
                 target_data_dict, key['key_value_hash'],
                 validation_result, record_status_result)

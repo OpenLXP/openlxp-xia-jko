@@ -26,210 +26,123 @@ logger = logging.getLogger('dict_config_logger')
 class Command(TestCase):
     # globally accessible data sets
     metadata = {
-        "CEU": "0",
-        "CLP": "1",
-        "RRP": "0",
-        "CF_ID": "",
-        "temp1": "9/27/2018",
-        "cat_fy": "2008",
-        "crs_id": "2146",
-        "Crs_url": "https://example.test.com/",
-        "End_date": "9999-12-31T00:00:00-05:00",
-        "crs_mode": "Continuous Learning",
-        "crs_name": "test data",
-        "IsCurrent": "true",
-        "crs_notes": "test data",
-        "Start_date": "2017-03-28T00:00:00-04:00",
-        "crs_header": "FAC 066",
-        "crs_layout": "N/A",
-        "crs_length": "Approximately 1 hour",
-        "crs_pdscode": "ZZD",
-        "SOURCESYSTEM": "DAU",
-        "crs_attendies": "test data",
-        "crs_objective": "",
-        "crs_pagenumber": "0",
-        "crs_postscript": "N/A",
-        "crs_description": "test data",
-        "crs_prerequisite": "None",
-        "cat_chapternumber": "0"
+        "Duration": 1,
+        "Instance": 12345,
+        "CatalogURL": "https://test_data.com",
+        "DeliveryMode": "test_data",
+        "SOURCESYSTEM": "JKO",
+        "LearningResourceName": "test_data",
+        "LearningResourceIdentifier": "test_data",
+        "LearningResourceDescription": "test_data"
     }
 
-    key_value = "FAC 066_DAU"
-    key_value_hash = "48d077aad8131f67dd83dc617f83f518"
-    hash_value = "f15860eed6e88ddfcce71059043f34a2"
+    key_value = "test_data_JKO"
+    key_value_hash = "2e08c9810d5cb3127761ec4a974b2d5d"
+    hash_value = "cb9af09d61c63b11832d9f30ae215829"
 
     target_metadata = {
         "Course": {
-            "CourseCode": "ACQ 3700",
-            "CourseTitle": "Acquisition Law",
-            "CourseAudience": "test_data",
-            "DepartmentName": "",
-            "CourseObjective": "test_data",
+            "CourseCode": "test_data",
+            "CourseType": "test_data",
+            "CourseTitle": "test_data",
             "CourseDescription": "test_data",
-            "CourseProviderName": "DAU",
-            "CourseSpecialNotes": "test_data",
-            "CoursePrerequisites": "None",
-            "EstimatedCompletionTime": "4.5 days",
-            "CourseSectionDeliveryMode": "Resident",
-            "CourseAdditionalInformation": "None"
+            "CourseProviderName": "JKO",
+            "EstimatedCompletionTime": 1
         },
         "CourseInstance": {
-            "CourseURL": "https://dau.tes.com/ui/lms-learning-details"
-        },
-        "General_Information": {
-            "EndDate": "end_date",
-            "StartDate": "start_date"
+            "CourseURL": "https://test_data.com"
         }
     }
 
-    target_key_value = "ACQ 3700_DAU"
-    target_key_value_hash = "3b1816a58e467e8034572b5634dffb27"
-    target_hash_value = "f15860eed6e88ddfcce71059043f34a2"
+    target_key_value = "test_data_JKO"
+    target_key_value_hash = "2e08c9810d5cb3127761ec4a974b2d5d"
+    target_hash_value = "de7f0a54a5895db52029ab2c2405aea5"
 
     metadata_invalid = {
-        "CEU": "0",
-        "CLP": "1",
-        "RRP": "0",
-        "CF_ID": "",
-        "temp1": "9/27/2018",
-        "cat_fy": "2008",
-        "crs_id": "2146",
-        "Crs_url": "https://example.test.com/",
-        "End_date": "9999-12-31T00:00:00-05:00",
-        "crs_mode": "Continuous Learning",
-        "crs_name": "",
-        "IsCurrent": "true",
-        "crs_notes": "test data",
-        "Start_date": "2017-03-28T00:00:00-04:00",
-        "crs_header": "FAC 067",
-        "crs_layout": "N/A",
-        "crs_length": "Approximately 1 hour",
-        "crs_pdscode": "ZZD",
-        "SOURCESYSTEM": "DAU",
-        "crs_attendies": "test data",
-        "crs_objective": "",
-        "crs_pagenumber": "0",
-        "crs_postscript": "N/A",
-        "crs_description": "test data",
-        "crs_prerequisite": "None",
-        "cat_chapternumber": "0"
+        "Duration": 1,
+        "Instance": 12345,
+        "CatalogURL": "https://test_data.com",
+        "DeliveryMode": "test_data",
+        "SOURCESYSTEM": "JKO",
+        "LearningResourceName": "test_data1",
+        "LearningResourceIdentifier": "test_data1",
+        "LearningResourceDescription": ""
     }
-    key_value_invalid = "FAC 067_DAU"
-    key_value_hash_invalid = "ab79365c545095fde43dbf55a5cff490"
+
+    key_value_invalid = "test_data1_JKO"
+    key_value_hash_invalid = "010cc8e51aef01eb7a7cd2888eda3d06"
     hash_value_invalid = "f15860eed6e88ddfcce71059043f34a3"
 
     target_metadata_invalid = {
         "Course": {
-            "CourseCode": "ACQ 3701",
-            "CourseTitle": "Acquisition Law",
-            "CourseAudience": "test_data",
-            "DepartmentName": "",
-            "CourseObjective": "test_data",
+            "CourseCode": "test_data1",
+            "CourseType": "test_data",
+            "CourseTitle": "test_data",
             "CourseDescription": "",
-            "CourseProviderName": "DAU",
-            "CourseSpecialNotes": "test_data",
-            "CoursePrerequisites": "None",
-            "EstimatedCompletionTime": "4.5 days",
-            "CourseSectionDeliveryMode": "Resident",
-            "CourseAdditionalInformation": "None"
+            "CourseProviderName": "JKO",
+            "EstimatedCompletionTime": 1
         },
         "CourseInstance": {
-            "CourseURL": "https://dau.tes.com/ui/lms-learning-details"
-        },
-        "General_Information": {
-            "EndDate": "end_date",
-            "StartDate": "start_date"
+            "CourseURL": "https://test_data.com"
         }
     }
-    target_key_value_invalid = "ACQ 3701_DAU"
-    target_key_value_hash_invalid = "fa45e2501554814d53c44b85b3c22c06"
+    target_key_value_invalid = "test_data1_JKO"
+    target_key_value_hash_invalid = "010cc8e51aef01eb7a7cd2888eda3d06"
     target_hash_value_invalid = "f15860eed6e88ddfcce71059043f34a3"
 
     target_mapping_dict = {
-        'Course': {
-            'CourseProviderName': 'SOURCESYSTEM',
-            'DepartmentName': '',
-            'CourseCode': 'crs_header',
-            'CourseTitle': 'crs_name',
-            'CourseDescription': 'crs_description',
-            'CourseAudience': 'crs_attendies',
-            'CourseSectionDeliveryMode': 'crs_mode',
-            'CourseObjective': 'crs_objective',
-            'CoursePrerequisites': 'crs_prerequisite',
-            'EstimatedCompletionTime': 'crs_length',
-            'CourseSpecialNotes': 'crs_notes',
-            'CourseAdditionalInformation': 'crs_postscript'
+        "Course": {
+            "CourseProviderName": "SOURCESYSTEM",
+            "CourseCode": "LearningResourceIdentifier",
+            "CourseType": "DeliveryMode",
+            "CourseTitle": "LearningResourceName",
+            "CourseDescription": "LearningResourceDescription",
+            "EstimatedCompletionTime": "Duration"
         },
-        'CourseInstance': {
-            'CourseURL': 'Crs_url'
-        },
-        'General_Information': {
-            'StartDate': 'start_date',
-            'EndDate': 'end_date'
+        "CourseInstance": {
+            "CourseURL": "CatalogURL"
         }
     }
 
     xia_data = {
-        'metadata_record_uuid': UUID(
-            '09edea0e-6c83-40a6-951e-2acee3e99502'),
+        'metadata_record_uuid': UUID('6ee3a160-ef1f-4246-97ec-7f324b2155a5'),
         'target_metadata': {
-            "Course": {
-                "CourseCode": "ACQ 3700",
-                "CourseTitle": "Acquisition Law",
-                "CourseAudience": "test_data",
-                "DepartmentName": "",
-                "CourseObjective": "test_data",
-                "CourseDescription": "test_data",
-                "CourseProviderName": "DAU",
-                "CourseSpecialNotes": "test_data",
-                "CoursePrerequisites": "None",
-                "EstimatedCompletionTime": "4.5 days",
-                "CourseSectionDeliveryMode": "Resident",
-                "CourseAdditionalInformation": "None"
+            'Course': {
+                'CourseCode': 'test_data',
+                'CourseType': 'test_data',
+                'CourseTitle': 'test_data',
+                'CourseDescription': 'test_data',
+                'CourseProviderName': 'JKO',
+                'EstimatedCompletionTime': 1
             },
-            "CourseInstance": {
-                "CourseURL": "https://dau.tes.com/ui/lms-learning-details"
-            },
-            "General_Information": {
-                "EndDate": "end_date",
-                "StartDate": "start_date"
+            'CourseInstance': {
+                'CourseURL': 'https://test_data.com'
             }
         },
-        'target_metadata_hash': '2451c90d70c4df137ee11ed803a8724c',
-        'target_metadata_key': 'DAU_DHA-US551',
-        'target_metadata_key_hash': '0360d0eb3324ae934c4cc3a58b96c0ba'
+        'target_metadata_hash': 'de7f0a54a5895db52029ab2c2405aea5',
+        'target_metadata_key': 'test_data_JKO',
+        'target_metadata_key_hash': '2e08c9810d5cb3127761ec4a974b2d5d'
     }
 
     xis_expected_data = {
-        'unique_record_identifier': UUID(
-            '09edea0e-6c83-40a6-951e-2acee3e99502'),
+        'unique_record_identifier': '6ee3a160-ef1f-4246-97ec-7f324b2155a5',
         'metadata': {
-            "Course": {
-                "CourseCode": "ACQ 3700",
-                "CourseTitle": "Acquisition Law",
-                "CourseAudience": "test_data",
-                "DepartmentName": "",
-                "CourseObjective": "test_data",
-                "CourseDescription": "test_data",
-                "CourseProviderName": "DAU",
-                "CourseSpecialNotes": "test_data",
-                "CoursePrerequisites": "None",
-                "EstimatedCompletionTime": "4.5 days",
-                "CourseSectionDeliveryMode": "Resident",
-                "CourseAdditionalInformation": "None"
+            'Course': {
+                'CourseCode': 'test_data',
+                'CourseType': 'test_data',
+                'CourseTitle': 'test_data',
+                'CourseDescription ': 'test_data',
+                'CourseProviderName ': 'JKO',
+                'EstimatedCompletionTime ': 1
             },
-            "CourseInstance": {
-                "CourseURL": "https://dau.tes.com/ui/lms-learning-details"
-            },
-            "General_Information": {
-                "EndDate": "end_date",
-                "StartDate": "start_date"
+            'CourseInstance': {
+                'CourseURL': 'https://test_data.com'
             }
         },
-        'metadata_hash': '2451c90d70c4df137ee11ed803a8724c',
-        'metadata_key': 'DAU_DHA-US551',
-        'metadata_key_hash': '0360d0eb3324ae934c4cc3a58b96c0ba',
-        'provider_name': 'DAU'
+        'metadata_hash': 'de7f0a54a5895db52029ab2c2405aea5',
+        'metadata_key': 'test_data_JKO',
+        'metadata_key_hash': '2e08c9810d5cb3127761ec4a974b2d5d',
+        'provider_name': 'JKO'
     }
 
     # Test cases for extract_source_metadata
@@ -237,10 +150,10 @@ class Command(TestCase):
     def test_get_publisher_detail(self):
         """Test to get publisher name from XIAConfiguration """
 
-        xiaConfig = XIAConfiguration(publisher='dau')
+        xiaConfig = XIAConfiguration(publisher='JKO')
         xiaConfig.save()
         result_publisher = get_publisher_detail()
-        self.assertEqual('dau', result_publisher)
+        self.assertEqual('JKO', result_publisher)
 
     def test_store_source_metadata(self):
         """Test to extract data from Experience Source Repository(XSR)
@@ -293,10 +206,10 @@ class Command(TestCase):
     def test_get_source_validation_schema(self):
         """Test to retrieve source validation schema from XIA configuration """
         xiaConfig = XIAConfiguration(
-            source_metadata_schema='DAU_source_validate_schema.json')
+            source_metadata_schema='JKO_source_validate_schema.json')
         xiaConfig.save()
         result_dict = get_source_validation_schema()
-        expected_dict = read_json_data('DAU_source_validate_schema.json')
+        expected_dict = read_json_data('JKO_source_validate_schema.json')
         self.assertEqual(expected_dict, result_dict)
 
     def test_get_source_metadata_for_validation(self):
@@ -309,7 +222,7 @@ class Command(TestCase):
             source_metadata_hash=self.hash_value,
             source_metadata_key=self.key_value,
             source_metadata_key_hash=self.key_value_hash,
-            source_metadata_extraction_date='2021-03-09 03:14:10.698914')
+            source_metadata_extraction_date=timezone.now())
         metadata_ledger.save()
         test_source_data = get_source_metadata_for_validation()
         self.assertTrue(test_source_data)
@@ -317,23 +230,24 @@ class Command(TestCase):
     def test_validate_source_using_key(self):
         """Test to check validation process for source"""
 
-        test_required_column_names = ['SOURCESYSTEM', 'crs_header', 'crs_name',
-                                      'crs_description', 'Start_date',
-                                      'End_date']
+        test_required_column_names = ['SOURCESYSTEM',
+                                      'LearningResourceIdentifier',
+                                      'LearningResourceName',
+                                      'LearningResourceDescription']
         metadata_ledger = MetadataLedger(
             record_lifecycle_status='Active',
             source_metadata=self.metadata,
             source_metadata_hash=self.hash_value,
             source_metadata_key=self.key_value,
             source_metadata_key_hash=self.key_value_hash,
-            source_metadata_extraction_date='2021-03-09 03:14:10.698914')
+            source_metadata_extraction_date=timezone.now())
         metadata_ledger_invalid = MetadataLedger(
             record_lifecycle_status='Active',
             source_metadata=self.metadata_invalid,
             source_metadata_hash=self.hash_value_invalid,
             source_metadata_key=self.key_value_invalid,
             source_metadata_key_hash=self.key_value_hash_invalid,
-            source_metadata_extraction_date='2021-03-09 03:14:10.698914')
+            source_metadata_extraction_date=timezone.now())
         metadata_ledger.save()
         metadata_ledger_invalid.save()
         result_test_query = MetadataLedger.objects. \
@@ -363,11 +277,11 @@ class Command(TestCase):
         """Test that get target mapping_dictionary from XIAConfiguration """
 
         xiaConfig = XIAConfiguration(
-            source_target_mapping='DAU_p2881_target_metadata_schema.json')
+            source_target_mapping='JKO_p2881_target_metadata_schema.json')
         xiaConfig.save()
         result_target_mapping_dict = get_target_metadata_for_transformation()
         expected_target_mapping_dict = read_json_data(
-            'DAU_p2881_target_metadata_schema.json')
+            'JKO_p2881_target_metadata_schema.json')
         self.assertEqual(result_target_mapping_dict,
                          expected_target_mapping_dict)
 
@@ -377,9 +291,9 @@ class Command(TestCase):
         metadata_ledger = MetadataLedger(
             record_lifecycle_status='Active',
             source_metadata=self.metadata,
-            source_metadata_hash='f15860eed6e88ddfcce71059043f34a2',
+            source_metadata_hash=self.key_value_hash,
             source_metadata_validation_status='Y',
-            source_metadata_key='FAC 066_DAU',
+            source_metadata_key=self.key_value,
             source_metadata_validation_date=timezone.now())
         metadata_ledger.save()
 
@@ -476,7 +390,7 @@ class Command(TestCase):
 
     def test_renaming_xia_for_posting_to_xis(self):
         """Test for Renaming XIA column names to match with XIS column names"""
-        xiaConfig = XIAConfiguration(publisher='DAU')
+        xiaConfig = XIAConfiguration(publisher='JKO')
         xiaConfig.save()
 
         return_data = renaming_xia_for_posting_to_xis(self.xia_data)

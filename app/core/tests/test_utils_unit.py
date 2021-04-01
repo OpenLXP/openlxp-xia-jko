@@ -2,7 +2,6 @@ import hashlib
 import logging
 from unittest.mock import patch
 
-import pandas as pd
 from django.test import SimpleTestCase, tag
 
 from core.management.utils.xia_internal import (check_validation_value,
@@ -11,8 +10,6 @@ from core.management.utils.xia_internal import (check_validation_value,
                                                 get_target_metadata_key_value,
                                                 replace_field_on_target_schema)
 from core.management.utils.xis_client import get_xis_api_endpoint
-from core.management.utils.xsr_client import (get_xsr_api_endpoint,
-                                              read_source_file)
 from core.management.utils.xss_client import get_aws_bucket_name
 
 logger = logging.getLogger('dict_config_logger')
@@ -38,7 +35,7 @@ class CommandTests(SimpleTestCase):
     def test_get_source_metadata_key_value(self):
         """Test key dictionary creation for source"""
         test_dict = {
-            'crs_header': 'key_field1',
+            'LearningResourceIdentifier': 'key_field1',
             'SOURCESYSTEM': 'key_field2'
         }
 
@@ -100,7 +97,6 @@ class CommandTests(SimpleTestCase):
         validation_result = 'Y'
         result = check_validation_value(ind, ele, prefix,
                                         validation_result)
-        logger.info(result)
         self.assertEqual('Y', result)
 
     @patch('core.management.utils.xia_internal.required_recommended_logs',
@@ -123,19 +119,6 @@ class CommandTests(SimpleTestCase):
         self.assertTrue(result_api_value)
 
     # Test cases for XSR_CLIENT
-
-    def test_get_xsr_endpoint(self):
-        """Test to check if XSR endpoint is present"""
-        result_xsr_endpoint = get_xsr_api_endpoint()
-        self.assertTrue(result_xsr_endpoint)
-
-    @patch('core.management.utils.xsr_client.extract_source',
-           return_value=dict({1: {'a': 'b'}}))
-    def test_read_source_file(self, extract):
-        """test to check if data is present for extraction """
-
-        result_data = read_source_file()
-        self.assertIsInstance(result_data, pd.DataFrame)
 
     # Test cases for XSS_CLIENT
 

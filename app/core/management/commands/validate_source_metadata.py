@@ -3,10 +3,10 @@ import logging
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from core.management.utils.xia_internal import (get_source_metadata_key_value,
-                                                required_recommended_logs,
-                                                check_dict, check_list,
-                                                check_validation_value)
+from core.management.utils.xia_internal import (check_dict, check_list,
+                                                check_validation_value,
+                                                get_source_metadata_key_value,
+                                                get_key_dict)
 from core.management.utils.xss_client import read_json_data
 from core.models import MetadataLedger, XIAConfiguration
 
@@ -84,7 +84,6 @@ def source_metadata_value_for_validation(
             check_validation_value(ind,
                                    data_dict[required_column_name_list[0]],
                                    required_column_name_list[0],
-                                   required_column_name_list[0],
                                    validation_result)
 
     return validation_result
@@ -96,6 +95,7 @@ def validate_source_using_key(source_data_dict, required_column_name):
     logger.info("Validating source data against required column names")
     len_source_metadata = len(source_data_dict)
     for ind in range(len_source_metadata):
+        key = get_key_dict(None, None)
         # Updating default validation for all records
         validation_result = 'Y'
         record_status_result = 'Active'

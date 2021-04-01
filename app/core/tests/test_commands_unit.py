@@ -24,77 +24,39 @@ class CommandTests(SimpleTestCase):
     # globally accessible data sets
 
     source_metadata = {
-        "CEU": "0",
-        "CLP": "1",
-        "RRP": "0",
-        "CF_ID": "",
-        "temp1": "9/27/2018",
-        "cat_fy": "2008",
-        "crs_id": "2146",
-        "Crs_url": "https://example.test.com/",
-        "End_date": "9999-12-31T00:00:00-05:00",
-        "crs_mode": "Continuous Learning",
-        "crs_name": "test data",
-        "IsCurrent": "true",
-        "crs_notes": "test data",
-        "Start_date": "2017-03-28T00:00:00-04:00",
-        "crs_header": "FAC 066",
-        "crs_layout": "N/A",
-        "crs_length": "Approximately 1 hour",
-        "crs_pdscode": "ZZD",
-        "SOURCESYSTEM": "DAU",
-        "crs_attendies": "test data",
-        "crs_objective": "",
-        "crs_pagenumber": "0",
-        "crs_postscript": "N/A",
-        "crs_description": "test data",
-        "crs_prerequisite": "None",
-        "cat_chapternumber": "0"
+        "Duration": 1,
+        "Instance": 12345,
+        "CatalogURL": "https://test_data.com",
+        "DeliveryMode": "test_data",
+        "SOURCESYSTEM": "JKO",
+        "LearningResourceName": "test_data",
+        "LearningResourceIdentifier": "test_data",
+        "LearningResourceDescription": "test_data"
     }
 
     target_metadata = {
         "Course": {
-            "CourseCode": "ACQ 3700",
-            "CourseTitle": "Acquisition Law",
-            "CourseAudience": "test_data",
-            "DepartmentName": "",
-            "CourseObjective": "test_data",
+            "CourseCode": "test_data",
+            "CourseType": "test_data",
+            "CourseTitle": "test_data",
             "CourseDescription": "test_data",
-            "CourseProviderName": "DAU",
-            "CourseSpecialNotes": "test_data",
-            "CoursePrerequisites": "None",
-            "EstimatedCompletionTime": "4.5 days",
-            "CourseSectionDeliveryMode": "Resident",
-            "CourseAdditionalInformation": "None"
+            "CourseProviderName": "JKO",
+            "EstimatedCompletionTime": 1
         },
         "CourseInstance": {
-            "CourseURL": "https://dau.tes.com/ui/lms-learning-details"
-        },
-        "General_Information": {
-            "EndDate": "end_date",
-            "StartDate": "start_date"
+            "CourseURL": "https://test_data.com"
         }
     }
 
     schema_data_dict = {
         'SOURCESYSTEM': 'Required',
-        'crs_id': 'Optional',
-        'crs_header': 'Required',
-        'crs_name': 'Required',
-        'crs_description': 'Required',
-        'crs_objective': 'Optional',
-        'crs_attendies': 'Optional',
-        'cat_images': 'Optional',
-        'cat_fy': 'Optional',
-        'temp1': 'Optional',
-        'sord_id': 'Optional',
-        'crs_url': 'Optional',
-        'Start_date': 'Required',
-        'End_date': 'Required',
-        'CEU': 'Optional',
-        'CLP': 'Optional',
-        'RRP': 'Optional',
-        'IsCurrent': 'Optional'
+        'LearningResourceIdentifier': 'Required',
+        'Instance': 'Optional',
+        'DeliveryMode': 'Optional',
+        'LearningResourceName': 'Required',
+        'LearningResourceDescription': 'Required',
+        'Duration': 'Optional',
+        'CatalogURL': 'Optional'
     }
 
     target_data_dict = {

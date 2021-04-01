@@ -162,7 +162,7 @@ def check_list(ind, ele, required_column_name, prefix, validation_result):
                        required_column_name[1:], prefix, validation_result)
 
 
-def check_validation_value(ind, ele, required_column_name, prefix,
+def check_validation_value(ind, ele, prefix,
                            validation_result):
     """Checks value for validation return result and calls log function"""
     if not ele:
