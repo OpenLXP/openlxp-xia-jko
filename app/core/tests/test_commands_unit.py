@@ -21,8 +21,131 @@ logger = logging.getLogger('dict_config_logger')
 
 @tag('unit')
 class CommandTests(SimpleTestCase):
-    # Test cases for waitdb
+    # globally accessible data sets
 
+    source_metadata = {
+        "CEU": "0",
+        "CLP": "1",
+        "RRP": "0",
+        "CF_ID": "",
+        "temp1": "9/27/2018",
+        "cat_fy": "2008",
+        "crs_id": "2146",
+        "Crs_url": "https://example.test.com/",
+        "End_date": "9999-12-31T00:00:00-05:00",
+        "crs_mode": "Continuous Learning",
+        "crs_name": "test data",
+        "IsCurrent": "true",
+        "crs_notes": "test data",
+        "Start_date": "2017-03-28T00:00:00-04:00",
+        "crs_header": "FAC 066",
+        "crs_layout": "N/A",
+        "crs_length": "Approximately 1 hour",
+        "crs_pdscode": "ZZD",
+        "SOURCESYSTEM": "DAU",
+        "crs_attendies": "test data",
+        "crs_objective": "",
+        "crs_pagenumber": "0",
+        "crs_postscript": "N/A",
+        "crs_description": "test data",
+        "crs_prerequisite": "None",
+        "cat_chapternumber": "0"
+    }
+
+    target_metadata = {
+        "Course": {
+            "CourseCode": "ACQ 3700",
+            "CourseTitle": "Acquisition Law",
+            "CourseAudience": "test_data",
+            "DepartmentName": "",
+            "CourseObjective": "test_data",
+            "CourseDescription": "test_data",
+            "CourseProviderName": "DAU",
+            "CourseSpecialNotes": "test_data",
+            "CoursePrerequisites": "None",
+            "EstimatedCompletionTime": "4.5 days",
+            "CourseSectionDeliveryMode": "Resident",
+            "CourseAdditionalInformation": "None"
+        },
+        "CourseInstance": {
+            "CourseURL": "https://dau.tes.com/ui/lms-learning-details"
+        },
+        "General_Information": {
+            "EndDate": "end_date",
+            "StartDate": "start_date"
+        }
+    }
+
+    schema_data_dict = {
+        'SOURCESYSTEM': 'Required',
+        'crs_id': 'Optional',
+        'crs_header': 'Required',
+        'crs_name': 'Required',
+        'crs_description': 'Required',
+        'crs_objective': 'Optional',
+        'crs_attendies': 'Optional',
+        'cat_images': 'Optional',
+        'cat_fy': 'Optional',
+        'temp1': 'Optional',
+        'sord_id': 'Optional',
+        'crs_url': 'Optional',
+        'Start_date': 'Required',
+        'End_date': 'Required',
+        'CEU': 'Optional',
+        'CLP': 'Optional',
+        'RRP': 'Optional',
+        'IsCurrent': 'Optional'
+    }
+
+    target_data_dict = {
+        'Course': {
+            'CourseProviderName': 'Required',
+            'DepartmentName': 'Optional',
+            'CourseCode': 'Required',
+            'CourseTitle': 'Required',
+            'CourseDescription': 'Required',
+            'CourseShortDescription': 'Required',
+            'CourseFullDescription': 'Optional',
+            'CourseAudience': 'Optional',
+            'CourseSectionDeliveryMode': 'Optional',
+            'CourseObjective': 'Optional',
+            'CoursePrerequisites': 'Optional',
+            'EstimatedCompletionTime': 'Optional',
+            'CourseSpecialNotes': 'Optional',
+            'CourseAdditionalInformation': 'Optional',
+            'CourseURL': 'Optional',
+            'CourseLevel': 'Optional',
+            'CourseSubjectMatter': 'Required'
+        },
+        'CourseInstance': {
+            'CourseCode': 'Required',
+            'CourseTitle': 'Required',
+            'Thumbnail': 'Recommended',
+            'CourseShortDescription': 'Optional',
+            'CourseFullDescription': 'Optional',
+            'CourseURL': 'Optional',
+            'StartDate': 'Required',
+            'EndDate': 'Required',
+            'EnrollmentStartDate': 'Optional',
+            'EnrollmentEndDate': 'Optional',
+            'DeliveryMode': 'Required',
+            'InLanguage': 'Optional',
+            'Instructor': 'Required',
+            'Duration': 'Optional',
+            'CourseLearningOutcome': 'Optional',
+            'CourseLevel': 'Optional',
+            'InstructorBio': 'Optional'
+        },
+        'General_Information': {
+            'StartDate': 'Required',
+            'EndDate': 'Required'
+        },
+        'Technical_Information': {
+            'Thumbnail': 'Recommended'
+        }
+    }
+
+    # Test cases for waitdb
     def test_wait_for_db_ready(self):
         """Test that waiting for db when db is available"""
         with patch('django.db.utils.ConnectionHandler.__getitem__') as gi:
@@ -45,12 +168,12 @@ class CommandTests(SimpleTestCase):
     def test_add_publisher_to_source(self):
         """Test for Add publisher column to source metadata and return
         source metadata"""
-        data = {
-            "LMS": ["Success Factors LMS v. 5953"],
-            "XAPI": ["Y"],
-            "SCORM": ["N"]}
+        test_data = {
+            "key1": ["val1"],
+            "key2": ["val2"],
+            "key3": ["val3"]}
 
-        test_df = pd.DataFrame.from_dict(data)
+        test_df = pd.DataFrame.from_dict(test_data)
         result = add_publisher_to_source(test_df, 'dau')
         key_exist = 'SOURCESYSTEM' in result[0]
         self.assertTrue(key_exist)
@@ -60,28 +183,8 @@ class CommandTests(SimpleTestCase):
     def test_get_required_fields_for_source_validation(self):
         """Test for Creating list of fields which are Required """
 
-        schema_data_dict = {
-            'SOURCESYSTEM': 'Required',
-            'crs_id': 'Optional',
-            'crs_header': 'Required',
-            'crs_name': 'Required',
-            'crs_description': 'Required',
-            'crs_objective': 'Optional',
-            'crs_attendies': 'Optional',
-            'cat_images': 'Optional',
-            'cat_fy': 'Optional',
-            'temp1': 'Optional',
-            'sord_id': 'Optional',
-            'crs_url': 'Optional',
-            'Start_date': 'Required',
-            'End_date': 'Required',
-            'CEU': 'Optional',
-            'CLP': 'Optional',
-            'RRP': 'Optional',
-            'IsCurrent': 'Optional'
-        }
         result_fields = get_required_fields_for_source_validation(
-            schema_data_dict)
+            self.schema_data_dict)
 
         self.assertTrue(result_fields)
 
@@ -103,150 +206,30 @@ class CommandTests(SimpleTestCase):
                                                             ['key1'],
                                                             'Y')
         self.assertTrue(return_value)
+
     # Test cases for transform_source_metadata
 
     def test_create_target_metadata_dict(self):
         """Test to check transformation of source to target schema and
         replacing None values with empty strings"""
-        source_data_dict = {
-            "CEU": "0",
-            "CLP": "1",
-            "RRP": "0",
-            "CF_ID": "",
-            "temp1": "9/27/2018",
-            "cat_fy": "2008",
-            "crs_id": "2146",
-            "Crs_url": "https://example.test.com/",
-            "End_date": "9999-12-31T00:00:00-05:00",
-            "crs_mode": "Continuous Learning",
-            "crs_name": "test data",
-            "IsCurrent": "true",
-            "crs_notes": "test data",
-            "Start_date": "2017-03-28T00:00:00-04:00",
-            "crs_header": "FAC 066",
-            "crs_layout": "N/A",
-            "crs_length": "Approximately 1 hour",
-            "crs_pdscode": "ZZD",
-            "SOURCESYSTEM": "DAU",
-            "crs_attendies": "test data",
-            "crs_objective": "",
-            "crs_pagenumber": "0",
-            "crs_postscript": "N/A",
-            "crs_description": "test data",
-            "crs_prerequisite": "None",
-            "cat_chapternumber": "0"
-        }
-        target_mapping_dict = {
-            "Course": {
-                "CourseCode": "ACQ 3700",
-                "CourseTitle": "Acquisition Law",
-                "CourseAudience": "test_data",
-                "DepartmentName": "",
-                "CourseObjective": "test_data",
-                "CourseDescription": "test_data",
-                "CourseProviderName": "DAU",
-                "CourseSpecialNotes": "test_data",
-                "CoursePrerequisites": "None",
-                "EstimatedCompletionTime": "4.5 days",
-                "CourseSectionDeliveryMode": "Resident",
-                "CourseAdditionalInformation": "None"
-            },
-            "CourseInstance": {
-                "CourseURL": "https://dau.tes.com/ui/lms-learning-details"
-            },
-            "General_Information": {
-                "EndDate": "end_date",
-                "StartDate": "start_date"
-            }
-        }
-        expected_data_dict = {
-            0: {
-                "Course": {
-                    "CourseCode": "ACQ 3700",
-                    "CourseTitle": "Acquisition Law",
-                    "CourseAudience": "test_data",
-                    "DepartmentName": "",
-                    "CourseObjective": "test_data",
-                    "CourseDescription": "test_data",
-                    "CourseProviderName": "DAU",
-                    "CourseSpecialNotes": "test_data",
-                    "CoursePrerequisites": "None",
-                    "EstimatedCompletionTime": "4.5 days",
-                    "CourseSectionDeliveryMode": "Resident",
-                    "CourseAdditionalInformation": "None"
-                },
-                "CourseInstance": {
-                    "CourseURL": "https://dau.tes.com/ui/lms-learning-details"
-                },
-                "General_Information": {
-                    "EndDate": "end_date",
-                    "StartDate": "start_date"
-                }
-            }
-        }
-        result_data_dict = create_target_metadata_dict(target_mapping_dict,
-                                                       source_data_dict)
+        expected_data_dict = {0: self.target_metadata}
+
+        result_data_dict = create_target_metadata_dict(self.target_metadata,
+                                                       self.source_metadata)
         self.assertEqual(result_data_dict[0]['Course'].get('CourseCode'),
                          expected_data_dict[0]['Course'].get('CourseCode'))
         self.assertEqual(
-            result_data_dict[0]['Course'].get('CourseSectionDeliveryMode'),
-            expected_data_dict[0]['Course'].get('CourseSectionDeliveryMode'))
+            result_data_dict[0]['Course'].get('CourseProviderName'),
+            expected_data_dict[0]['Course'].get('CourseProviderName'))
 
     # Test cases for validate_target_metadata
 
     def test_get_required_recommended_fields_for_target_validation(self):
         """Test for Creating list of fields which are Required & Recommended"""
 
-        target_data_dict = {
-            'Course': {
-                'CourseProviderName': 'Required',
-                'DepartmentName': 'Optional',
-                'CourseCode': 'Required',
-                'CourseTitle': 'Required',
-                'CourseDescription': 'Required',
-                'CourseShortDescription': 'Required',
-                'CourseFullDescription': 'Optional',
-                'CourseAudience': 'Optional',
-                'CourseSectionDeliveryMode': 'Optional',
-                'CourseObjective': 'Optional',
-                'CoursePrerequisites': 'Optional',
-                'EstimatedCompletionTime': 'Optional',
-                'CourseSpecialNotes': 'Optional',
-                'CourseAdditionalInformation': 'Optional',
-                'CourseURL': 'Optional',
-                'CourseLevel': 'Optional',
-                'CourseSubjectMatter': 'Required'
-            },
-            'CourseInstance': {
-                'CourseCode': 'Required',
-                'CourseTitle': 'Required',
-                'Thumbnail': 'Recommended',
-                'CourseShortDescription': 'Optional',
-                'CourseFullDescription': 'Optional',
-                'CourseURL': 'Optional',
-                'StartDate': 'Required',
-                'EndDate': 'Required',
-                'EnrollmentStartDate': 'Optional',
-                'EnrollmentEndDate': 'Optional',
-                'DeliveryMode': 'Required',
-                'InLanguage': 'Optional',
-                'Instructor': 'Required',
-                'Duration': 'Optional',
-                'CourseLearningOutcome': 'Optional',
-                'CourseLevel': 'Optional',
-                'InstructorBio': 'Optional'
-            },
-            'General_Information': {
-                'StartDate': 'Required',
-                'EndDate': 'Required'
-            },
-            'Technical_Information': {
-                'Thumbnail': 'Recommended'
-            }
-        }
         required_dict, recommended_dict = \
             get_required_recommended_fields_for_target_validation(
-                target_data_dict)
+                self.target_data_dict)
 
         self.assertTrue(required_dict)
-        self.assertTrue(target_data_dict)
+        self.assertTrue(self.target_data_dict)

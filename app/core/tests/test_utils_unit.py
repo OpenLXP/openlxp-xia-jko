@@ -96,11 +96,11 @@ class CommandTests(SimpleTestCase):
         """Test the function which returns the source bucket name"""
         ind = 1
         ele = 'abc'
-        required_column_name = 'abc'
         prefix = 'test'
         validation_result = 'Y'
-        result = check_validation_value(ind, ele, required_column_name, prefix,
+        result = check_validation_value(ind, ele, prefix,
                                         validation_result)
+        logger.info(result)
         self.assertEqual('Y', result)
 
     @patch('core.management.utils.xia_internal.required_recommended_logs',
@@ -109,10 +109,9 @@ class CommandTests(SimpleTestCase):
         """Test the function which returns the source bucket name"""
         ind = 1
         ele = ''
-        required_column_name = 'abc'
         prefix = 'test'
         validation_result = 'Y'
-        result = check_validation_value(ind, ele, required_column_name, prefix,
+        result = check_validation_value(ind, ele, prefix,
                                         validation_result)
         self.assertEqual('N', result)
 

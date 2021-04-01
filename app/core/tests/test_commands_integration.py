@@ -24,6 +24,7 @@ logger = logging.getLogger('dict_config_logger')
 
 @tag('integration')
 class Command(TestCase):
+    # globally accessible data sets
     metadata = {
         "CEU": "0",
         "CLP": "1",
@@ -143,6 +144,93 @@ class Command(TestCase):
     target_key_value_invalid = "ACQ 3701_DAU"
     target_key_value_hash_invalid = "fa45e2501554814d53c44b85b3c22c06"
     target_hash_value_invalid = "f15860eed6e88ddfcce71059043f34a3"
+
+    target_mapping_dict = {
+        'Course': {
+            'CourseProviderName': 'SOURCESYSTEM',
+            'DepartmentName': '',
+            'CourseCode': 'crs_header',
+            'CourseTitle': 'crs_name',
+            'CourseDescription': 'crs_description',
+            'CourseAudience': 'crs_attendies',
+            'CourseSectionDeliveryMode': 'crs_mode',
+            'CourseObjective': 'crs_objective',
+            'CoursePrerequisites': 'crs_prerequisite',
+            'EstimatedCompletionTime': 'crs_length',
+            'CourseSpecialNotes': 'crs_notes',
+            'CourseAdditionalInformation': 'crs_postscript'
+        },
+        'CourseInstance': {
+            'CourseURL': 'Crs_url'
+        },
+        'General_Information': {
+            'StartDate': 'start_date',
+            'EndDate': 'end_date'
+        }
+    }
+
+    xia_data = {
+        'metadata_record_uuid': UUID(
+            '09edea0e-6c83-40a6-951e-2acee3e99502'),
+        'target_metadata': {
+            "Course": {
+                "CourseCode": "ACQ 3700",
+                "CourseTitle": "Acquisition Law",
+                "CourseAudience": "test_data",
+                "DepartmentName": "",
+                "CourseObjective": "test_data",
+                "CourseDescription": "test_data",
+                "CourseProviderName": "DAU",
+                "CourseSpecialNotes": "test_data",
+                "CoursePrerequisites": "None",
+                "EstimatedCompletionTime": "4.5 days",
+                "CourseSectionDeliveryMode": "Resident",
+                "CourseAdditionalInformation": "None"
+            },
+            "CourseInstance": {
+                "CourseURL": "https://dau.tes.com/ui/lms-learning-details"
+            },
+            "General_Information": {
+                "EndDate": "end_date",
+                "StartDate": "start_date"
+            }
+        },
+        'target_metadata_hash': '2451c90d70c4df137ee11ed803a8724c',
+        'target_metadata_key': 'DAU_DHA-US551',
+        'target_metadata_key_hash': '0360d0eb3324ae934c4cc3a58b96c0ba'
+    }
+
+    xis_expected_data = {
+        'unique_record_identifier': UUID(
+            '09edea0e-6c83-40a6-951e-2acee3e99502'),
+        'metadata': {
+            "Course": {
+                "CourseCode": "ACQ 3700",
+                "CourseTitle": "Acquisition Law",
+                "CourseAudience": "test_data",
+                "DepartmentName": "",
+                "CourseObjective": "test_data",
+                "CourseDescription": "test_data",
+                "CourseProviderName": "DAU",
+                "CourseSpecialNotes": "test_data",
+                "CoursePrerequisites": "None",
+                "EstimatedCompletionTime": "4.5 days",
+                "CourseSectionDeliveryMode": "Resident",
+                "CourseAdditionalInformation": "None"
+            },
+            "CourseInstance": {
+                "CourseURL": "https://dau.tes.com/ui/lms-learning-details"
+            },
+            "General_Information": {
+                "EndDate": "end_date",
+                "StartDate": "start_date"
+            }
+        },
+        'metadata_hash': '2451c90d70c4df137ee11ed803a8724c',
+        'metadata_key': 'DAU_DHA-US551',
+        'metadata_key_hash': '0360d0eb3324ae934c4cc3a58b96c0ba',
+        'provider_name': 'DAU'
+    }
 
     # Test cases for extract_source_metadata
 
@@ -295,37 +383,13 @@ class Command(TestCase):
             source_metadata_validation_date=timezone.now())
         metadata_ledger.save()
 
-        target_mapping_dict = {
-            'Course': {
-                'CourseProviderName': 'SOURCESYSTEM',
-                'DepartmentName': '',
-                'CourseCode': 'crs_header',
-                'CourseTitle': 'crs_name',
-                'CourseDescription': 'crs_description',
-                'CourseAudience': 'crs_attendies',
-                'CourseSectionDeliveryMode': 'crs_mode',
-                'CourseObjective': 'crs_objective',
-                'CoursePrerequisites': 'crs_prerequisite',
-                'EstimatedCompletionTime': 'crs_length',
-                'CourseSpecialNotes': 'crs_notes',
-                'CourseAdditionalInformation': 'crs_postscript'
-            },
-            'CourseInstance': {
-                'CourseURL': 'Crs_url'
-            },
-            'General_Information': {
-                'StartDate': 'start_date',
-                'EndDate': 'end_date'
-            }
-        }
-
         test_data_dict = MetadataLedger.objects.values(
             'source_metadata').filter(
             source_metadata_validation_status='Y',
             record_lifecycle_status='Active').exclude(
             source_metadata_validation_date=None)
 
-        transform_source_using_key(test_data_dict, target_mapping_dict)
+        transform_source_using_key(test_data_dict, self.target_mapping_dict)
         result_data = MetadataLedger.objects.filter(
             source_metadata_key=self.key_value,
             record_lifecycle_status='Active',
@@ -414,77 +478,15 @@ class Command(TestCase):
         """Test for Renaming XIA column names to match with XIS column names"""
         xiaConfig = XIAConfiguration(publisher='DAU')
         xiaConfig.save()
-        data = {
-            'metadata_record_uuid': UUID(
-                '09edea0e-6c83-40a6-951e-2acee3e99502'),
-            'target_metadata': {
-                "Course": {
-                    "CourseCode": "ACQ 3700",
-                    "CourseTitle": "Acquisition Law",
-                    "CourseAudience": "test_data",
-                    "DepartmentName": "",
-                    "CourseObjective": "test_data",
-                    "CourseDescription": "test_data",
-                    "CourseProviderName": "DAU",
-                    "CourseSpecialNotes": "test_data",
-                    "CoursePrerequisites": "None",
-                    "EstimatedCompletionTime": "4.5 days",
-                    "CourseSectionDeliveryMode": "Resident",
-                    "CourseAdditionalInformation": "None"
-                },
-                "CourseInstance": {
-                    "CourseURL": "https://dau.tes.com/ui/lms-learning-details"
-                },
-                "General_Information": {
-                    "EndDate": "end_date",
-                    "StartDate": "start_date"
-                }
-            },
-            'target_metadata_hash': '2451c90d70c4df137ee11ed803a8724c',
-            'target_metadata_key': 'DAU_DHA-US551',
-            'target_metadata_key_hash': '0360d0eb3324ae934c4cc3a58b96c0ba'
-        }
 
-        expected_data = {
-            'unique_record_identifier': UUID(
-                '09edea0e-6c83-40a6-951e-2acee3e99502'),
-            'metadata': {
-                "Course": {
-                    "CourseCode": "ACQ 3700",
-                    "CourseTitle": "Acquisition Law",
-                    "CourseAudience": "test_data",
-                    "DepartmentName": "",
-                    "CourseObjective": "test_data",
-                    "CourseDescription": "test_data",
-                    "CourseProviderName": "DAU",
-                    "CourseSpecialNotes": "test_data",
-                    "CoursePrerequisites": "None",
-                    "EstimatedCompletionTime": "4.5 days",
-                    "CourseSectionDeliveryMode": "Resident",
-                    "CourseAdditionalInformation": "None"
-                },
-                "CourseInstance": {
-                    "CourseURL": "https://dau.tes.com/ui/lms-learning-details"
-                },
-                "General_Information": {
-                    "EndDate": "end_date",
-                    "StartDate": "start_date"
-                }
-            },
-            'metadata_hash': '2451c90d70c4df137ee11ed803a8724c',
-            'metadata_key': 'DAU_DHA-US551',
-            'metadata_key_hash': '0360d0eb3324ae934c4cc3a58b96c0ba',
-            'provider_name': 'DAU'
-        }
-
-        return_data = renaming_xia_for_posting_to_xis(data)
-        self.assertEquals(expected_data['metadata_hash'],
+        return_data = renaming_xia_for_posting_to_xis(self.xia_data)
+        self.assertEquals(self.xis_expected_data['metadata_hash'],
                           return_data['metadata_hash'])
-        self.assertEquals(expected_data['metadata_key'],
+        self.assertEquals(self.xis_expected_data['metadata_key'],
                           return_data['metadata_key'])
-        self.assertEquals(expected_data['metadata_key_hash'],
+        self.assertEquals(self.xis_expected_data['metadata_key_hash'],
                           return_data['metadata_key_hash'])
-        self.assertEquals(expected_data['provider_name'],
+        self.assertEquals(self.xis_expected_data['provider_name'],
                           return_data['provider_name'])
 
     def test_post_data_to_xis_response_201(self):
