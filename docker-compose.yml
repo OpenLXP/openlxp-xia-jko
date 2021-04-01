@@ -39,6 +39,7 @@ services:
       XSR_API_ENDPOINT: "${XSR_API_ENDPOINT}"
     volumes:
       - ./app:/opt/app/openlxp-xia-jko
+      - C:/Users/kjijo/Documents/dockerRun/cacert.pem:/etc/ssl/certs/ca-certificates.pem
     depends_on:
       - db_xia_jko
     networks:
