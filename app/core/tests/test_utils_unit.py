@@ -2,44 +2,56 @@ import hashlib
 import logging
 from unittest.mock import patch
 
-from django.test import SimpleTestCase, tag
+from ddt import data, ddt, unpack
+from django.test import tag
 
-from core.management.utils.xia_internal import (check_validation_value,
+from core.management.utils.xia_internal import (dict_flatten,
+                                                flatten_dict_object,
+                                                flatten_list_object,
                                                 get_key_dict,
                                                 get_source_metadata_key_value,
                                                 get_target_metadata_key_value,
-                                                replace_field_on_target_schema)
+                                                replace_field_on_target_schema,
+                                                update_flattened_object)
 from core.management.utils.xis_client import get_xis_api_endpoint
-from core.management.utils.xss_client import get_aws_bucket_name
+from core.management.utils.xss_client import (
+    get_aws_bucket_name, get_required_fields_for_validation,
+    get_source_validation_schema, get_target_metadata_for_transformation,
+    get_target_validation_schema)
+from core.models import XIAConfiguration
+
+from .test_setup import TestSetUp
 
 logger = logging.getLogger('dict_config_logger')
 
 
 @tag('unit')
-class CommandTests(SimpleTestCase):
+@ddt
+class UtilsTests(TestSetUp):
     """Unit Test cases for utils """
 
     # Test cases for XIA_INTERNAL
-
-    def test_get_key_dict(self):
+    @data(('test_key', 'test_key_hash'), ('test_key1', 'test_key_hash2'))
+    @unpack
+    def test_get_key_dict(self, first_value, second_value):
         """Test for key dictionary creation"""
-        arg1 = 'test_key'
-        arg2 = 'test_key_hash'
         expected_result = {
-            'key_value': arg1,
-            'key_value_hash': arg2
+            'key_value': first_value,
+            'key_value_hash': second_value
         }
-        result = get_key_dict(arg1, arg2)
-        self.assertEqual(result, expected_result)
+        result = get_key_dict(first_value, second_value)
+        self.assertEquals(result, expected_result)
 
-    def test_get_source_metadata_key_value(self):
+    @data(('key_field1', 'key_field2'), ('key_field11', 'key_field22'))
+    @unpack
+    def test_get_source_metadata_key_value(self, first_value, second_value):
         """Test key dictionary creation for source"""
         test_dict = {
-            'LearningResourceIdentifier': 'key_field1',
-            'SOURCESYSTEM': 'key_field2'
+            'LearningResourceIdentifier': first_value,
+            'SOURCESYSTEM': second_value
         }
 
-        expected_key = 'key_field1_key_field2'
+        expected_key = first_value + '_' + second_value
         expected_key_hash = hashlib.md5(expected_key.encode('utf-8')). \
             hexdigest()
 
@@ -71,15 +83,17 @@ class CommandTests(SimpleTestCase):
         self.assertEqual(test_dict1['1']['Course']['EducationalContext'],
                          'Non - Mandatory')
 
-    def test_get_target_metadata_key_value(self):
+    @data(('key_field1', 'key_field2'), ('key_field11', 'key_field22'))
+    @unpack
+    def test_get_target_metadata_key_value(self, first_value, second_value):
         """Test key dictionary creation for target"""
 
         test_dict = {'Course': {
-            'CourseCode': 'key_field1',
-            'CourseProviderName': 'key_field2'
+            'CourseCode': first_value,
+            'CourseProviderName': second_value
         }}
 
-        expected_key = 'key_field1_key_field2'
+        expected_key = first_value + '_' + second_value
         expected_key_hash = hashlib.md5(expected_key.encode('utf-8')). \
             hexdigest()
 
@@ -87,29 +101,178 @@ class CommandTests(SimpleTestCase):
         self.assertEqual(result_key_dict['key_value'], expected_key)
         self.assertEqual(result_key_dict['key_value_hash'], expected_key_hash)
 
-    @patch('core.management.utils.xia_internal.required_recommended_logs',
-           return_value=None)
-    def test_check_validation_value_Y(self, arg):
-        """Test the function which returns the source bucket name"""
-        ind = 1
-        ele = 'abc'
-        prefix = 'test'
-        validation_result = 'Y'
-        result = check_validation_value(ind, ele, prefix,
-                                        validation_result)
-        self.assertEqual('Y', result)
+    def test_dict_flatten(self):
+        """Test function to navigate to value in source
+        metadata to be validated"""
+        test_data_dict = {"key1": "value1",
+                          "key2": {"sub_key1": "sub_value1"},
+                          "key3": [{"sub_key2": "sub_value2"},
+                                   {"sub_key3": "sub_value3"}]}
 
-    @patch('core.management.utils.xia_internal.required_recommended_logs',
-           return_value=None)
-    def test_check_validation_value_N(self, arg):
-        """Test the function which returns the source bucket name"""
-        ind = 1
-        ele = ''
+        with patch('core.management.utils.xia_internal.flatten_list_object') \
+                as mock_flatten_list, \
+                patch('core.management.utils.xia_internal.flatten_dict_'
+                      'object') as mock_flatten_dict, \
+                patch('core.management.utils.xia_internal.update_flattened_'
+                      'object') as mock_update_flattened:
+            mock_flatten_list.return_value = mock_flatten_list
+            mock_flatten_list.return_value = None
+            mock_flatten_dict.return_value = mock_flatten_dict
+            mock_flatten_dict.return_value = None
+            mock_update_flattened.return_value = mock_update_flattened
+            mock_update_flattened.return_value = None
+
+        return_value = dict_flatten(test_data_dict,
+                                    self.test_required_column_names)
+        self.assertTrue(return_value)
+
+    @data(([{'A': 'a'}]), ([{'B': 'b', 'C': 'c'}]))
+    def test_flatten_list_object_list(self, value):
+        """Test the function to flatten list object when the value is list"""
         prefix = 'test'
-        validation_result = 'Y'
-        result = check_validation_value(ind, ele, prefix,
-                                        validation_result)
-        self.assertEqual('N', result)
+        flatten_dict = []
+        with patch('core.management.utils.xia_internal.flatten_list_object') \
+                as mock_flatten_list, \
+                patch('core.management.utils.xia_internal.flatten_dict_'
+                      'object') as mock_flatten_dict, \
+                patch('core.management.utils.xia_internal.update_flattened_'
+                      'object') as mock_update_flattened:
+            mock_flatten_list.return_value = mock_flatten_list
+            mock_flatten_list.return_value = None
+            mock_flatten_dict.return_value = mock_flatten_dict
+            mock_flatten_dict.return_value = None
+            mock_update_flattened.return_value = mock_update_flattened
+            mock_update_flattened.return_value = None
+
+            flatten_list_object(value, prefix, flatten_dict,
+                                self.test_required_column_names)
+
+            self.assertEqual(mock_flatten_dict.call_count, 1)
+
+    @data(([{'A': 'a'}]), ([{'B': 'b', 'C': 'c'}]))
+    def test_flatten_list_object_dict(self, value):
+        """Test the function to flatten list object when the value is dict"""
+        prefix = 'test'
+        flatten_dict = []
+        with patch('core.management.utils.xia_internal.flatten_list_object') \
+                as mock_flatten_list, \
+                patch('core.management.utils.xia_internal.flatten_dict_'
+                      'object') as mock_flatten_dict, \
+                patch('core.management.utils.xia_internal.update_flattened_'
+                      'object') as mock_update_flattened:
+            mock_flatten_list.return_value = mock_flatten_list
+            mock_flatten_list.return_value = None
+            mock_flatten_dict.return_value = mock_flatten_dict
+            mock_flatten_dict.return_value = None
+            mock_update_flattened.return_value = mock_update_flattened
+            mock_update_flattened.return_value = None
+
+            flatten_list_object(value, prefix, flatten_dict,
+                                self.test_required_column_names)
+
+            self.assertEqual(mock_flatten_dict.call_count, 1)
+
+    @data((['hello']), (['hi']))
+    def test_flatten_list_object_str(self, value):
+        """Test the function to flatten list object when the value is string"""
+        prefix = 'test'
+        flatten_dict = []
+        with patch('core.management.utils.xia_internal.flatten_list_object') \
+                as mock_flatten_list, \
+                patch('core.management.utils.xia_internal.flatten_dict_'
+                      'object') as mock_flatten_dict, \
+                patch('core.management.utils.xia_internal.update_flattened_'
+                      'object') as mock_update_flattened:
+            mock_flatten_list.return_value = mock_flatten_list
+            mock_flatten_list.return_value = None
+            mock_flatten_dict.return_value = mock_flatten_dict
+            mock_flatten_dict.return_value = None
+            mock_update_flattened.return_value = mock_update_flattened
+            mock_update_flattened.return_value = None
+            flatten_list_object(value, prefix, flatten_dict,
+                                self.test_required_column_names)
+
+            self.assertEqual(mock_update_flattened.call_count, 1)
+
+    @data(({'abc': {'A': 'a'}}), ({'xyz': {'B': 'b'}}))
+    def test_flatten_dict_object_dict(self, value):
+        """Test the function to flatten dictionary object when input value is
+        a dict"""
+        prefix = 'test'
+        flatten_dict = []
+        with patch('core.management.utils.xia_internal.flatten_list_object') \
+                as mock_flatten_list, \
+                patch('core.management.utils.xia_internal.flatten_dict_'
+                      'object') as mock_flatten_dict, \
+                patch('core.management.utils.xia_internal.update_flattened_'
+                      'object') as mock_update_flattened:
+            mock_flatten_list.return_value = mock_flatten_list
+            mock_flatten_list.return_value = None
+            mock_flatten_dict.return_value = mock_flatten_dict
+            mock_flatten_dict.return_value = None
+            mock_update_flattened.return_value = mock_update_flattened
+            mock_update_flattened.return_value = None
+
+            flatten_dict_object(value, prefix, flatten_dict,
+                                self.test_required_column_names)
+
+            self.assertEqual(mock_flatten_dict.call_count, 1)
+
+    @data(({'abc': [1, 2, 3]}), ({'xyz': [1, 2, 3, 4, 5]}))
+    def test_flatten_dict_object_list(self, value):
+        """Test the function to flatten dictionary object when input value is
+        a list"""
+        prefix = 'test'
+        flatten_dict = []
+        with patch('core.management.utils.xia_internal.flatten_list_object') \
+                as mock_flatten_list, \
+                patch('core.management.utils.xia_internal.flatten_dict_'
+                      'object') as mock_flatten_dict, \
+                patch('core.management.utils.xia_internal.update_flattened_'
+                      'object') as mock_update_flattened:
+            mock_flatten_list.return_value = mock_flatten_list
+            mock_flatten_list.return_value = None
+            mock_flatten_dict.return_value = mock_flatten_dict
+            mock_flatten_dict.return_value = None
+            mock_update_flattened.return_value = mock_update_flattened
+            mock_update_flattened.return_value = None
+
+            flatten_dict_object(value, prefix, flatten_dict,
+                                self.test_required_column_names)
+
+            self.assertEqual(mock_flatten_list.call_count, 1)
+
+    @data(({'abc': 'A'}), ({'xyz': 'B'}))
+    def test_flatten_dict_object_str(self, value):
+        """Test the function to flatten dictionary object when input value is
+        a string"""
+        prefix = 'test'
+        flatten_dict = []
+        with patch('core.management.utils.xia_internal.flatten_list_object') \
+                as mock_flatten_list, \
+                patch('core.management.utils.xia_internal.flatten_dict_'
+                      'object') as mock_flatten_dict, \
+                patch('core.management.utils.xia_internal.update_flattened_'
+                      'object') as mock_update_flattened:
+            mock_flatten_list.return_value = mock_flatten_list
+            mock_flatten_list.return_value = None
+            mock_flatten_dict.return_value = mock_flatten_dict
+            mock_flatten_dict.return_value = None
+            mock_update_flattened.return_value = mock_update_flattened
+            mock_update_flattened.return_value = None
+
+            flatten_dict_object(value, prefix, flatten_dict,
+                                self.test_required_column_names)
+
+            self.assertEqual(mock_update_flattened.call_count, 1)
+
+    @data('', 'str1')
+    def test_update_flattened_object(self, value):
+        """Test the function which returns the source bucket name"""
+        prefix = 'test'
+        flatten_dict = {}
+        update_flattened_object(value, prefix, flatten_dict)
+        self.assertTrue(flatten_dict)
 
     # Test cases for XIS_CLIENT
 
@@ -118,11 +281,63 @@ class CommandTests(SimpleTestCase):
         result_api_value = get_xis_api_endpoint()
         self.assertTrue(result_api_value)
 
-    # Test cases for XSR_CLIENT
-
     # Test cases for XSS_CLIENT
 
     def test_get_aws_bucket_name(self):
         """Test the function which returns the source bucket name"""
         result_bucket = get_aws_bucket_name()
         self.assertTrue(result_bucket)
+
+    def test_get_source_validation_schema(self):
+        """Test to retrieve source_metadata_schema from XIA configuration"""
+        with patch('core.management.utils.xss_client'
+                   '.XIAConfiguration.objects') as xdsCfg, \
+                patch('core.management.utils.xss_client'
+                      '.read_json_data') as read_obj:
+            xiaConfig = XIAConfiguration(
+                source_metadata_schema='JKO_source_validate_schema.json')
+            xdsCfg.return_value = xiaConfig
+            read_obj.return_value = read_obj
+            read_obj.return_value = self.schema_data_dict
+            return_from_function = get_source_validation_schema()
+            self.assertEqual(read_obj.return_value,
+                             return_from_function)
+
+    def test_get_required_fields_for_validation(self):
+        """Test for Creating list of fields which are Required """
+
+        required_column_name, recommended_column_name = \
+            get_required_fields_for_validation(self.schema_data_dict)
+
+        self.assertTrue(required_column_name)
+        self.assertTrue(recommended_column_name)
+
+    def test_get_target_validation_schema(self):
+        """Test to retrieve target_metadata_schema from XIA configuration"""
+        with patch('core.management.utils.xss_client'
+                   '.XIAConfiguration.objects') as xiaconfigobj, \
+                patch('core.management.utils.xss_client'
+                      '.read_json_data') as read_obj:
+            xiaConfig = XIAConfiguration(
+                target_metadata_schema='p2881_target_validation_schema.json')
+            xiaconfigobj.return_value = xiaConfig
+            read_obj.return_value = read_obj
+            read_obj.return_value = self.schema_data_dict
+            return_from_function = get_target_validation_schema()
+            self.assertEqual(read_obj.return_value,
+                             return_from_function)
+
+    def test_get_target_metadata_for_transformation(self):
+        """Test to retrieve target metadata schema from XIA configuration """
+        with patch('core.management.utils.xss_client'
+                   '.XIAConfiguration.objects') as xia_config_obj, \
+                patch('core.management.utils.xss_client'
+                      '.read_json_data') as read_obj:
+            xiaConfig = XIAConfiguration(
+                source_target_mapping='JKO_p2881_target_metadata_schema.json')
+            xia_config_obj.return_value = xiaConfig
+            read_obj.return_value = read_obj
+            read_obj.return_value = self.target_data_dict
+            return_from_function = get_target_metadata_for_transformation()
+            self.assertEqual(read_obj.return_value,
+                             return_from_function)

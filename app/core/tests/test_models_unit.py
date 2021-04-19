@@ -1,4 +1,5 @@
 from django.test import SimpleTestCase, tag
+from django.utils import timezone
 
 from core.models import MetadataLedger, XIAConfiguration
 
@@ -27,22 +28,24 @@ class ModelTests(SimpleTestCase):
 
     def test_metadata_ledger(self):
         """Test for a new Metadata_Ledger entry is successful with defaults"""
-        metadata_record_inactivate_date = '2021-02-04 01:26:56.528476'
-        record_lifecycle_status = 'A'
+        metadata_record_inactivate_date = timezone.now()
+        record_lifecycle_status = 'Active'
         source_metadata = ''
         source_metadata_extraction_date = ''
         source_metadata_hash = '74df499f177d0a7adb3e610302abc6a5'
-        source_metadata_key = 'DAU_SS-cl_amas_a01_it_enus'
+        source_metadata_key = 'AGENT_test_key'
         source_metadata_key_hash = 'f6df40fbbf4a4c4091fbf64c9b6458e0'
-        source_metadata_transform_date = '2021-02-04 01:26:56.528476'
-        source_metadata_validation_date = '2021-02-04 01:26:56.528476'
+        source_metadata_transform_date = timezone.now()
+        source_metadata_validation_date = timezone.now()
         source_metadata_valid_status = 'Y'
         target_metadata = ''
         target_metadata_hash = '74df499f177d0a7adb3e610302abc6a5'
-        target_metadata_key = 'DAU_SS-cl_amas_a01_it_enus'
+        target_metadata_key = 'AGENT_test_key'
         target_metadata_key_hash = '74df499f177d0a7adb3e610302abc6a5'
-        target_metadata_transmit_date = '2021-02-04 01:26:56.528476'
-        target_metadata_validation_date = '2021-02-04 01:26:56.528476'
+        target_metadata_transmit_date = timezone.now()
+        target_meta_transmit_status = 'Ready'
+        target_transmit_st_code = 200
+        target_metadata_validation_date = timezone.now()
         target_metadata_validation_status = 'Y'
 
         metadataLedger = MetadataLedger(
@@ -61,6 +64,8 @@ class ModelTests(SimpleTestCase):
             target_metadata_key=target_metadata_key,
             target_metadata_key_hash=target_metadata_key_hash,
             target_metadata_transmission_date=target_metadata_transmit_date,
+            target_metadata_transmission_status=target_meta_transmit_status,
+            target_metadata_transmission_status_code=target_transmit_st_code,
             target_metadata_validation_date=target_metadata_validation_date,
             target_metadata_validation_status=target_metadata_validation_status
         )
@@ -93,6 +98,11 @@ class ModelTests(SimpleTestCase):
                          target_metadata_key_hash)
         self.assertEqual(metadataLedger.target_metadata_transmission_date,
                          target_metadata_transmit_date)
+        self.assertEqual(metadataLedger.target_metadata_transmission_status,
+                         target_meta_transmit_status)
+        self.assertEqual(
+            metadataLedger.target_metadata_transmission_status_code,
+            target_transmit_st_code)
         self.assertEqual(metadataLedger.target_metadata_validation_date,
                          target_metadata_validation_date)
         self.assertEqual(metadataLedger.target_metadata_validation_status,
