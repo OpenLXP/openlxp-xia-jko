@@ -5,23 +5,15 @@ import pandas as pd
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from core.management.utils.xia_internal import (get_target_metadata_key_value,
+from core.management.utils.xia_internal import (dict_flatten,
+                                                get_target_metadata_key_value,
                                                 replace_field_on_target_schema)
-from core.management.utils.xss_client import read_json_data
-from core.models import MetadataLedger, XIAConfiguration
+from core.management.utils.xss_client import (
+    get_required_fields_for_validation, get_source_validation_schema,
+    get_target_metadata_for_transformation)
+from core.models import MetadataLedger
 
 logger = logging.getLogger('dict_config_logger')
-
-
-def get_target_metadata_for_transformation():
-    """Retrieve target metadata schema from XIA configuration """
-    logger.info("Configuration of schemas and files")
-    xia_data = XIAConfiguration.objects.first()
-    target_metadata_schema = xia_data.source_target_mapping
-    logger.info("Reading schema for transformation")
-    # Read source transformation schema as dictionary
-    target_mapping_dict = read_json_data(target_metadata_schema)
-    return target_mapping_dict
 
 
 def get_source_metadata_for_transformation():
@@ -39,26 +31,38 @@ def get_source_metadata_for_transformation():
     return source_data_dict
 
 
-def create_target_metadata_dict(target_mapping_dict, source_data_dict):
+def create_target_metadata_dict(target_mapping_dict, source_data_dict,
+                                required_column_list):
+    """Function to replace and transform source data to target data for
+    using target mapping schema"""
+
     # Create dataframe using target metadata schema
     target_schema = pd.DataFrame.from_dict(
         target_mapping_dict,
         orient='index')
+
+    # Flatten source data dictionary for replacing and transformation
+    source_data_dict = dict_flatten(source_data_dict, required_column_list)
+
     # Updating null values with empty strings for replacing metadata
     source_data_dict = {
         k: '' if not v else v for k, v in
         source_data_dict.items()}
+
     # Replacing metadata schema with mapped values from source metadata
-    target_schema = target_schema.replace(
-        source_data_dict)
+    target_schema = target_schema.replace(source_data_dict)
+
     # Dropping index value and creating json object
     target_data = target_schema.apply(lambda x: [x.dropna()],
                                       axis=1).to_json()
+
     # Creating dataframe from json object
     target_data_df = pd.read_json(target_data)
+
     # transforming target dataframe to dictionary object for replacing
     # values in target with new value
     target_data_dict = target_data_df.to_dict(orient='index')
+
     return target_data_dict
 
 
@@ -66,11 +70,16 @@ def store_transformed_source_metadata(key_value, key_value_hash,
                                       target_data_dict,
                                       hash_value):
     """Storing target metadata in MetadataLedger"""
-    MetadataLedger.objects.filter(
+    data_for_transformation = MetadataLedger.objects.filter(
         source_metadata_key=key_value,
         record_lifecycle_status='Active',
         source_metadata_validation_status='Y'
-    ).update(
+    )
+
+    if data_for_transformation.values("target_metadata_hash") != hash_value:
+        data_for_transformation.update(target_metadata_validation_status='')
+
+    data_for_transformation.update(
         source_metadata_transformation_date=timezone.now(),
         target_metadata_key=key_value,
         target_metadata_key_hash=key_value_hash,
@@ -78,7 +87,8 @@ def store_transformed_source_metadata(key_value, key_value_hash,
         target_metadata_hash=hash_value)
 
 
-def transform_source_using_key(source_data_dict, target_mapping_dict):
+def transform_source_using_key(source_data_dict, target_mapping_dict,
+                               required_column_list):
     """Transforming source data using target metadata schema"""
     logger.info(
         "Transforming source data using target renaming and mapping "
@@ -90,7 +100,9 @@ def transform_source_using_key(source_data_dict, target_mapping_dict):
             target_data_dict = create_target_metadata_dict(target_mapping_dict,
                                                            source_data_dict
                                                            [ind]
-                                                           [table_column_name])
+                                                           [table_column_name],
+                                                           required_column_list
+                                                           )
             # Looping through target values in dictionary
             for ind1 in target_data_dict:
                 # Replacing values in field referring target schema
@@ -119,6 +131,10 @@ class Command(BaseCommand):
         """
         target_mapping_dict = get_target_metadata_for_transformation()
         source_data_dict = get_source_metadata_for_transformation()
-        transform_source_using_key(source_data_dict, target_mapping_dict)
+        schema_data_dict = get_source_validation_schema()
+        required_column_list, recommended_column_list = \
+            get_required_fields_for_validation(schema_data_dict)
+        transform_source_using_key(source_data_dict, target_mapping_dict,
+                                   required_column_list)
 
         logger.info('MetadataLedger updated with transformed data in XIA')
