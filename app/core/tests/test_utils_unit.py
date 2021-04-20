@@ -126,6 +126,53 @@ class UtilsTests(TestSetUp):
                                     self.test_required_column_names)
         self.assertTrue(return_value)
 
+    @data(
+        ([{'a.b': None, 'a.c': 'value2', 'd': None},
+          {'a.b': 'value1', 'a.c': 'value2', 'd': None}]))
+    def test_flatten_list_object_loop(self, value):
+        """Test the looping od the function to flatten
+        list object when the value is list"""
+        prefix = 'a'
+        flatten_dict = {}
+        required_list = ['a.b', 'a.c', 'd']
+        with patch('core.management.utils.xia_internal.flatten_list_object') \
+                as mock_flatten_list, \
+                patch('core.management.utils.xia_internal.flatten_dict_'
+                      'object') as mock_flatten_dict, \
+                patch('core.management.utils.xia_internal.update_flattened_'
+                      'object') as mock_update_flattened:
+            mock_flatten_list.return_value = mock_flatten_list
+            mock_flatten_list.return_value = None
+            mock_flatten_dict.return_value = mock_flatten_dict
+            mock_flatten_dict.return_value = None
+            mock_update_flattened.side_effect = flatten_dict = \
+                {'a.b': None, 'a.c': 'value2'}
+
+            flatten_list_object(value, prefix, flatten_dict, required_list)
+            self.assertEqual(mock_flatten_dict.call_count, 2)
+
+    @data(
+        ([{'b': [None]}]))
+    def test_flatten_list_object_multilevel(self, value):
+        """Test the function to flatten list object
+         when the value is list for multilevel lists"""
+        prefix = 'a'
+        flatten_dict = {}
+        required_list = ['a.b', 'd']
+        with patch('core.management.utils.xia_internal.flatten_list_object') \
+                as mock_flatten_list, \
+                patch('core.management.utils.xia_internal.flatten_dict_'
+                      'object') as mock_flatten_dict, \
+                patch('core.management.utils.xia_internal.update_flattened_'
+                      'object') as mock_update_flattened:
+            mock_flatten_list.return_value = mock_update_flattened
+            mock_flatten_dict.return_value = mock_flatten_list()
+            mock_update_flattened.side_effect = flatten_dict = \
+                {'a.b': None}
+
+            flatten_list_object(value, prefix, flatten_dict, required_list)
+            self.assertEqual(mock_flatten_list.call_count, 1)
+
     @data(([{'A': 'a'}]), ([{'B': 'b', 'C': 'c'}]))
     def test_flatten_list_object_list(self, value):
         """Test the function to flatten list object when the value is list"""
