@@ -6,7 +6,7 @@ from django.test import tag
 from django.utils import timezone
 
 from core.management.commands.extract_source_metadata import (
-    get_publisher_detail, extract_metadata_using_key, store_source_metadata)
+    extract_metadata_using_key, get_publisher_detail, store_source_metadata)
 from core.management.commands.load_target_metadata import (
     post_data_to_xis, renaming_xia_for_posting_to_xis)
 from core.management.commands.transform_source_metadata import (

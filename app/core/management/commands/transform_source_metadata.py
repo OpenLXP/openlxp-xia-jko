@@ -20,8 +20,7 @@ def get_source_metadata_for_transformation():
     """Retrieving Source metadata from MetadataLedger that needs to be
         transformed"""
     logger.info(
-        "Retrieving source metadata from MetadataLedger that needs to be "
-        "transformed")
+        "Retrieving source metadata from MetadataLedger to be transformed")
     source_data_dict = MetadataLedger.objects.values(
         'source_metadata').filter(
         source_metadata_validation_status='Y',

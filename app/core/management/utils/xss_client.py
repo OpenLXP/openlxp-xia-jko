@@ -2,6 +2,7 @@ import json
 import logging
 
 import boto3
+
 from core.management.utils.xia_internal import dict_flatten
 from core.models import XIAConfiguration
 
@@ -15,21 +16,31 @@ def get_aws_bucket_name():
 
 
 def read_json_data(file_name):
-    """setting file path for json files and ingesting as dictionary values """
+    """Setting file path for json files and ingesting as dictionary values """
     s3 = boto3.resource('s3')
     bucket_name = get_aws_bucket_name()
-
+    # Read json file and store as a dictionary for processing
     json_path = s3.Object(bucket_name, file_name)
     json_content = json_path.get()['Body'].read().decode('utf-8')
     data_dict = json.loads(json_content)
     return data_dict
 
 
+def get_publisher_detail():
+    """Retrieve publisher from XIA configuration """
+    logger.debug("Retrieve publisher from XIA configuration")
+    xia_data = XIAConfiguration.objects.first()
+    publisher = xia_data.publisher
+    return publisher
+
+
 def get_source_validation_schema():
     """Retrieve source validation schema from XIA configuration """
-    logger.info("Configuration of schemas and files")
+    logger.info("Configuration of schemas and files for source")
     xia_data = XIAConfiguration.objects.first()
     source_validation_schema = xia_data.source_metadata_schema
+    if not source_validation_schema:
+        logger.warning("Source validation field name is empty!")
     logger.info("Reading schema for validation")
     # Read source validation schema as dictionary
     schema_data_dict = read_json_data(source_validation_schema)
@@ -38,9 +49,11 @@ def get_source_validation_schema():
 
 def get_target_validation_schema():
     """Retrieve target validation schema from XIA configuration """
-    logger.info("Configuration of schemas and files")
+    logger.info("Configuration of schemas and files for target")
     xia_data = XIAConfiguration.objects.first()
     target_validation_schema = xia_data.target_metadata_schema
+    if not target_validation_schema:
+        logger.warning("Target validation field name is empty!")
     logger.info("Reading schema for validation")
     # Read source validation schema as dictionary
     schema_data_dict = read_json_data(target_validation_schema)
@@ -70,9 +83,11 @@ def get_required_fields_for_validation(schema_data_dict):
 
 def get_target_metadata_for_transformation():
     """Retrieve target metadata schema from XIA configuration """
-    logger.info("Configuration of schemas and files")
+    logger.info("Configuration of schemas and files for transformation")
     xia_data = XIAConfiguration.objects.first()
     target_metadata_schema = xia_data.source_target_mapping
+    if not target_metadata_schema:
+        logger.warning("Target metadata schema field name is empty!")
     logger.info("Reading schema for transformation")
     # Read source transformation schema as dictionary
     target_mapping_dict = read_json_data(target_metadata_schema)

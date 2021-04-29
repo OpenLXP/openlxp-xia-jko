@@ -17,8 +17,7 @@ def get_target_metadata_for_validation():
     """Retrieving target metadata from MetadataLedger that needs to be
         validated"""
     logger.info(
-        "Accessing target metadata from MetadataLedger that needs to be "
-        "validated")
+        "Accessing target metadata from MetadataLedger to be validated")
     target_data_dict = MetadataLedger.objects.values(
         'target_metadata').filter(target_metadata_validation_status='',
                                   record_lifecycle_status='Active'
@@ -43,7 +42,8 @@ def validate_target_using_key(target_data_dict, required_column_list,
                               recommended_column_list):
     """Validating target data against required & recommended column names"""
 
-    logger.info('Validating and updating records in MetadataLedger table')
+    logger.info('Validating and updating records in MetadataLedger table for '
+                'target data')
     len_target_metadata = len(target_data_dict)
     for ind in range(len_target_metadata):
         # Updating default validation for all records

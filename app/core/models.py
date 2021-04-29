@@ -4,10 +4,6 @@ from django.db import models
 from django.forms import ValidationError
 from django.urls import reverse
 
-# def user_directory_path(instance, filename):
-#     # file will be uploaded to MEDIA_ROOT / user_<id>/<filename>
-#     return 'user_{0}/{1}'.format(instance.user.id, filename)
-
 
 class XIAConfiguration(models.Model):
     """Model for XIA Configuration """

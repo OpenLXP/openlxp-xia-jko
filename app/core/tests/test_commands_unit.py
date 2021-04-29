@@ -9,16 +9,15 @@ from django.test import tag
 from django.utils import timezone
 
 from core.management.commands.extract_source_metadata import (
-    add_publisher_to_source, extract_metadata_using_key, get_publisher_detail,
-    get_source_metadata)
-from core.management.commands.validate_source_metadata import (
-    get_source_metadata_for_validation, validate_source_using_key)
+    add_publisher_to_source, extract_metadata_using_key)
 from core.management.commands.load_target_metadata import (
-    check_records_to_load_into_xis, get_publisher_to_add, post_data_to_xis,
+    check_records_to_load_into_xis, post_data_to_xis,
     renaming_xia_for_posting_to_xis)
 from core.management.commands.transform_source_metadata import (
     create_target_metadata_dict, get_source_metadata_for_transformation,
     transform_source_using_key)
+from core.management.commands.validate_source_metadata import (
+    get_source_metadata_for_validation, validate_source_using_key)
 from core.management.commands.validate_target_metadata import (
     get_target_metadata_for_validation, validate_target_using_key)
 from core.models import MetadataLedger, XIAConfiguration
@@ -52,37 +51,19 @@ class CommandTests(TestSetUp):
 
         # Test cases for extract_source_metadata
 
-    def test_get_publisher_detail(self):
-        """Test to retrieve publisher from XIA configuration"""
-        with patch('core.management.commands.extract_source_metadata'
-                   '.XIAConfiguration.objects') as xdsCfg:
-            xiaConfig = XIAConfiguration(publisher='JKO')
-            xdsCfg.first.return_value = xiaConfig
-            return_from_function = get_publisher_detail()
-            self.assertEqual(xiaConfig.publisher, return_from_function)
-
-    def test_get_source_metadata(self):
-        """ Test to retrieving source metadata"""
-        with patch('core.management.commands.extract_source_metadata'
-                   '.read_source_file') as read_obj:
-            read_obj.return_value = read_obj
-            read_obj.return_value = dict({1: {'a': 'b'}})
-            return_from_function = get_source_metadata()
-            self.assertEqual(read_obj.return_value,
-                             return_from_function)
-
     def test_add_publisher_to_source(self):
         """Test for Add publisher column to source metadata and return
         source metadata"""
-        test_data = {
-            "key1": ["val1"],
-            "key2": ["val2"],
-            "key3": ["val3"]}
-
-        test_df = pd.DataFrame.from_dict(test_data)
-        result = add_publisher_to_source(test_df, 'JKO')
-        key_exist = 'SOURCESYSTEM' in result[0]
-        self.assertTrue(key_exist)
+        with patch('core.management.utils.xss_client'
+                   '.get_publisher_detail'), \
+                patch('core.management.utils.xss_client'
+                      '.XIAConfiguration.objects') as xisCfg:
+            xiaConfig = XIAConfiguration(publisher='JKO')
+            xisCfg.first.return_value = xiaConfig
+            test_df = pd.DataFrame.from_dict(self.test_data)
+            result = add_publisher_to_source(test_df)
+            key_exist = 'SOURCESYSTEM' in result[0]
+            self.assertTrue(key_exist)
 
     def test_extract_metadata_using_key(self):
         """Test to creating key, hash of key & hash of metadata"""
@@ -320,31 +301,23 @@ class CommandTests(TestSetUp):
             self.assertEqual(mock_store_target_valid_status.call_count, 0)
 
     # Test cases for load_target_metadata
-
-    def test_get_publisher_to_add(self):
-        """Test to Retrieve publisher from XIA configuration"""
-        with patch('core.management.commands.load_target_metadata'
-                   '.XIAConfiguration.objects') as xisCfg:
-            xiaConfig = XIAConfiguration(publisher='JKO')
-            xisCfg.first.return_value = xiaConfig
-            return_from_function = get_publisher_to_add()
-            self.assertEqual(xiaConfig.publisher, return_from_function)
-
     def test_renaming_xia_for_posting_to_xis(self):
         """Test for Renaming XIA column names to match with XIS column names"""
-        with patch('core.management.commands.load_target_metadata'
-                   '.get_publisher_to_add') as response_obj:
-            response_obj.return_value = response_obj
-            response_obj.return_value = 'JKO'
+        with patch('core.management.utils.xss_client'
+                   '.get_publisher_detail'), \
+                patch('core.management.utils.xss_client'
+                      '.XIAConfiguration.objects') as xisCfg:
+            xiaConfig = XIAConfiguration(publisher='JKO')
+            xisCfg.first.return_value = xiaConfig
             return_data = renaming_xia_for_posting_to_xis(self.xia_data)
-        self.assertEquals(self.xis_expected_data['metadata_hash'],
-                          return_data['metadata_hash'])
-        self.assertEquals(self.xis_expected_data['metadata_key'],
-                          return_data['metadata_key'])
-        self.assertEquals(self.xis_expected_data['metadata_key_hash'],
-                          return_data['metadata_key_hash'])
-        self.assertEquals(self.xis_expected_data['provider_name'],
-                          return_data['provider_name'])
+            self.assertEquals(self.xis_expected_data['metadata_hash'],
+                              return_data['metadata_hash'])
+            self.assertEquals(self.xis_expected_data['metadata_key'],
+                              return_data['metadata_key'])
+            self.assertEquals(self.xis_expected_data['metadata_key_hash'],
+                              return_data['metadata_key_hash'])
+            self.assertEquals(self.xis_expected_data['provider_name'],
+                              return_data['provider_name'])
 
     def test_check_records_to_load_into_xis_one_record(self):
         """Test to Retrieve number of Metadata_Ledger records in XIA to load
@@ -395,8 +368,10 @@ class CommandTests(TestSetUp):
         with patch('core.management.commands.load_target_metadata'
                    '.renaming_xia_for_posting_to_xis',
                    return_value=self.xis_expected_data), \
-                patch('core.management.commands.load_target_metadata'
-                      '.XIAConfiguration.objects') as xisCfg, \
+                patch('core.management.utils.xss_client'
+                      '.get_publisher_detail'), \
+                patch('core.management.utils.xss_client'
+                      '.XIAConfiguration.objects') as xiaCfg, \
                 patch('core.management.commands.load_target_metadata'
                       '.MetadataLedger.objects') as meta_obj, \
                 patch('requests.post') as response_obj, \
@@ -404,7 +379,7 @@ class CommandTests(TestSetUp):
                       '.check_records_to_load_into_xis',
                       return_value=None) as mock_check_records_to_load:
             xiaConfig = XIAConfiguration(publisher='JKO')
-            xisCfg.first.return_value = xiaConfig
+            xiaCfg.first.return_value = xiaConfig
             response_obj.return_value = response_obj
             response_obj.status_code = 201
 
@@ -426,8 +401,10 @@ class CommandTests(TestSetUp):
         with patch('core.management.commands.load_target_metadata'
                    '.renaming_xia_for_posting_to_xis',
                    return_value=self.xis_expected_data), \
-                patch('core.management.commands.load_target_metadata'
-                      '.XIAConfiguration.objects') as xisCfg, \
+                patch('core.management.utils.xss_client'
+                      '.get_publisher_detail'), \
+                patch('core.management.utils.xss_client'
+                      '.XIAConfiguration.objects') as xiaCfg, \
                 patch('core.management.commands.load_target_metadata'
                       '.MetadataLedger.objects') as meta_obj, \
                 patch('requests.post') as response_obj, \
@@ -435,7 +412,7 @@ class CommandTests(TestSetUp):
                       '.check_records_to_load_into_xis',
                       return_value=None) as mock_check_records_to_load:
             xiaConfig = XIAConfiguration(publisher='JKO')
-            xisCfg.first.return_value = xiaConfig
+            xiaCfg.first.return_value = xiaConfig
             response_obj.return_value = response_obj
             response_obj.status_code = 201
 

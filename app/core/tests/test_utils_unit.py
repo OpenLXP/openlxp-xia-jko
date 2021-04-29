@@ -15,9 +15,9 @@ from core.management.utils.xia_internal import (dict_flatten,
                                                 update_flattened_object)
 from core.management.utils.xis_client import get_xis_api_endpoint
 from core.management.utils.xss_client import (
-    get_aws_bucket_name, get_required_fields_for_validation,
-    get_source_validation_schema, get_target_metadata_for_transformation,
-    get_target_validation_schema)
+    get_aws_bucket_name, get_publisher_detail,
+    get_required_fields_for_validation, get_source_validation_schema,
+    get_target_metadata_for_transformation, get_target_validation_schema)
 from core.models import XIAConfiguration
 
 from .test_setup import TestSetUp
@@ -334,6 +334,15 @@ class UtilsTests(TestSetUp):
         """Test the function which returns the source bucket name"""
         result_bucket = get_aws_bucket_name()
         self.assertTrue(result_bucket)
+
+    def test_get_publisher_detail(self):
+        """Test to retrieve publisher from XIA configuration"""
+        with patch('core.management.utils.xss_client'
+                   '.XIAConfiguration.objects') as xdsCfg:
+            xiaConfig = XIAConfiguration(publisher='edX')
+            xdsCfg.first.return_value = xiaConfig
+            return_from_function = get_publisher_detail()
+            self.assertEqual(xiaConfig.publisher, return_from_function)
 
     def test_get_source_validation_schema(self):
         """Test to retrieve source_metadata_schema from XIA configuration"""
