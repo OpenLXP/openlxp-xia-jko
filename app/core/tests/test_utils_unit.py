@@ -339,7 +339,7 @@ class UtilsTests(TestSetUp):
         """Test to retrieve publisher from XIA configuration"""
         with patch('core.management.utils.xss_client'
                    '.XIAConfiguration.objects') as xdsCfg:
-            xiaConfig = XIAConfiguration(publisher='edX')
+            xiaConfig = XIAConfiguration(publisher='JKO')
             xdsCfg.first.return_value = xiaConfig
             return_from_function = get_publisher_detail()
             self.assertEqual(xiaConfig.publisher, return_from_function)
