@@ -26,14 +26,6 @@ def read_json_data(file_name):
     return data_dict
 
 
-def get_publisher_detail():
-    """Retrieve publisher from XIA configuration """
-    logger.debug("Retrieve publisher from XIA configuration")
-    xia_data = XIAConfiguration.objects.first()
-    publisher = xia_data.publisher
-    return publisher
-
-
 def get_source_validation_schema():
     """Retrieve source validation schema from XIA configuration """
     logger.info("Configuration of schemas and files for source")

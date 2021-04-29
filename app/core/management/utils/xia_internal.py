@@ -1,7 +1,17 @@
 import hashlib
 import logging
 
+from core.models import XIAConfiguration
+
 logger = logging.getLogger('dict_config_logger')
+
+
+def get_publisher_detail():
+    """Retrieve publisher from XIA configuration """
+    logger.debug("Retrieve publisher from XIA configuration")
+    xia_data = XIAConfiguration.objects.first()
+    publisher = xia_data.publisher
+    return publisher
 
 
 def get_key_dict(key_value, key_value_hash):

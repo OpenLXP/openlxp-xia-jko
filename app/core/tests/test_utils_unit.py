@@ -9,15 +9,16 @@ from core.management.utils.xia_internal import (dict_flatten,
                                                 flatten_dict_object,
                                                 flatten_list_object,
                                                 get_key_dict,
+                                                get_publisher_detail,
                                                 get_source_metadata_key_value,
                                                 get_target_metadata_key_value,
                                                 replace_field_on_target_schema,
                                                 update_flattened_object)
 from core.management.utils.xis_client import get_xis_api_endpoint
 from core.management.utils.xss_client import (
-    get_aws_bucket_name, get_publisher_detail,
-    get_required_fields_for_validation, get_source_validation_schema,
-    get_target_metadata_for_transformation, get_target_validation_schema)
+    get_aws_bucket_name, get_required_fields_for_validation,
+    get_source_validation_schema, get_target_metadata_for_transformation,
+    get_target_validation_schema)
 from core.models import XIAConfiguration
 
 from .test_setup import TestSetUp
@@ -31,6 +32,16 @@ class UtilsTests(TestSetUp):
     """Unit Test cases for utils """
 
     # Test cases for XIA_INTERNAL
+
+    def test_get_publisher_detail(self):
+        """Test to retrieve publisher from XIA configuration"""
+        with patch('core.management.utils.xia_internal'
+                   '.XIAConfiguration.objects') as xdsCfg:
+            xiaConfig = XIAConfiguration(publisher='JKO')
+            xdsCfg.first.return_value = xiaConfig
+            return_from_function = get_publisher_detail()
+            self.assertEqual(xiaConfig.publisher, return_from_function)
+
     @data(('test_key', 'test_key_hash'), ('test_key1', 'test_key_hash2'))
     @unpack
     def test_get_key_dict(self, first_value, second_value):
@@ -334,15 +345,6 @@ class UtilsTests(TestSetUp):
         """Test the function which returns the source bucket name"""
         result_bucket = get_aws_bucket_name()
         self.assertTrue(result_bucket)
-
-    def test_get_publisher_detail(self):
-        """Test to retrieve publisher from XIA configuration"""
-        with patch('core.management.utils.xss_client'
-                   '.XIAConfiguration.objects') as xdsCfg:
-            xiaConfig = XIAConfiguration(publisher='JKO')
-            xdsCfg.first.return_value = xiaConfig
-            return_from_function = get_publisher_detail()
-            self.assertEqual(xiaConfig.publisher, return_from_function)
 
     def test_get_source_validation_schema(self):
         """Test to retrieve source_metadata_schema from XIA configuration"""
