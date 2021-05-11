@@ -42,7 +42,7 @@ jobs:
         docker network create openlxp
         echo "Docker network successfully created"
         echo "Running coverage unit test"
-        docker-compose --env-file ./.env run app_xia_dau sh -c "python manage.py waitdb && coverage run manage.py test --tag=unit && flake8 && coverage report && coverage report --fail-under=80"
+        docker-compose --env-file ./.env run app_xia_jko sh -c "python manage.py waitdb && coverage run manage.py test --tag=unit && flake8 && coverage report && coverage report --fail-under=80"
 # Commenting this step for now. 
 #    - name: Upload Coverage to Codecov
 #      uses: codecov/codecov-action@v1
