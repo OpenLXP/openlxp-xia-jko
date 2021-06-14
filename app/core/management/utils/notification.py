@@ -93,6 +93,8 @@ def send_notifications(email, sender):
             # Add the attachment to the parent container.
             mail.attach(att)
             mail.send()
+            logging.FileHandler(getattr(settings, "LOG_PATH", None),
+                                mode='w')
         # Display an error if something goes wrong.
         except ClientError as e:
             logger.error(e.response['Error']['Message'])

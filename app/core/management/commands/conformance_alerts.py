@@ -1,6 +1,5 @@
 import logging
 
-from django.conf import settings
 from django.core.management.base import BaseCommand
 
 from core.management.utils.notification import send_notifications
@@ -32,5 +31,3 @@ class Command(BaseCommand):
         """Email log notification is sent to filer/personas when warning/error
         occurred in EVTVL process"""
         send_log_email()
-        logging.FileHandler(getattr(settings, "LOG_PATH", None),
-                            mode='w')
