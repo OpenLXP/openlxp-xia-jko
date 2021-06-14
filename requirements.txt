@@ -5,6 +5,7 @@ django-mysql>=3.10.0,<3.11.0
 Django>=3.1.4,<3.2.0
 
 djangorestframework>=3.12.2,<3.13.0
+
 boto3~=1.16.54
 
 flake8>=3.8.4,<3.9.0
@@ -23,10 +24,14 @@ s3fs
 
 requests~=2.25.1
 
-xlrd==1.2.0
-
-openpyxl
-
 coverage>=5.5, < 5.6
 
-ddt
+ddt~=1.4.2 , <1.5.0
+
+django-ses>=2.0.0 , <2.1.0
+
+botocore~=1.19.63
+
+xlrd >=2.0.1 , <2.1.0
+
+openpyxl >=3.0.7 , <3.1.0

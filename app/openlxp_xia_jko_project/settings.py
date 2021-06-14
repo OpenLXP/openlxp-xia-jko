@@ -18,7 +18,6 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
@@ -31,7 +30,6 @@ DEBUG = True
 mimetypes.add_type("text/css", ".css", True)
 
 ALLOWED_HOSTS = ['*']
-
 
 # Application definition
 
@@ -76,7 +74,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'openlxp_xia_jko_project.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 
@@ -99,6 +96,9 @@ REST_FRAMEWORK = {
     ]
 }
 
+EMAIL_BACKEND = 'django_ses.SESBackend'
+
+
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
 
@@ -117,7 +117,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/3.1/topics/i18n/
 
@@ -131,20 +130,20 @@ USE_L10N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
+LOG_PATH = '/etc/debug.log'
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
 
     'loggers': {
         'dict_config_logger': {
-            'handlers': ['console'],
+            'handlers': ['console', 'file_logs'],
             'level': 'INFO',
             'propagate': True,
         },
@@ -156,6 +155,13 @@ LOGGING = {
             'stream': sys.stdout,
             'formatter': 'simpleRe',
         },
+        'file_logs': {
+            'level': 'WARNING',
+            'class': 'logging.FileHandler',
+            'filename': LOG_PATH,
+            'formatter': 'simpleRe',
+        },
+
     },
 
     'formatters': {

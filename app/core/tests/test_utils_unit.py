@@ -5,6 +5,7 @@ from unittest.mock import patch
 from ddt import data, ddt, unpack
 from django.test import tag
 
+from core.management.utils.notification import send_notifications
 from core.management.utils.xia_internal import (dict_flatten,
                                                 flatten_dict_object,
                                                 flatten_list_object,
@@ -19,7 +20,7 @@ from core.management.utils.xss_client import (
     get_aws_bucket_name, get_required_fields_for_validation,
     get_source_validation_schema, get_target_metadata_for_transformation,
     get_target_validation_schema)
-from core.models import XIAConfiguration
+from core.models import XIAConfiguration, XISConfiguration
 
 from .test_setup import TestSetUp
 
@@ -334,11 +335,15 @@ class UtilsTests(TestSetUp):
 
     # Test cases for XIS_CLIENT
 
-    def test_get_api_endpoint(self):
-        """Test to check if API endpoint is present"""
-        result_api_value = get_xis_api_endpoint()
-        self.assertTrue(result_api_value)
-
+    def test_get_xis_api_endpoint(self):
+        """Test to retrieve xis_api_endpoint from XIS configuration"""
+        with patch('core.management.utils.xis_client'
+                   '.XISConfiguration.objects') as xisCfg:
+            xisConfig = XISConfiguration(
+                xis_api_endpoint=self.xis_api_endpoint_url)
+            xisCfg.first.return_value = xisConfig
+            return_from_function = get_xis_api_endpoint()
+            self.assertEqual(xisConfig.xis_api_endpoint, return_from_function)
     # Test cases for XSS_CLIENT
 
     def test_get_aws_bucket_name(self):
@@ -399,3 +404,11 @@ class UtilsTests(TestSetUp):
             return_from_function = get_target_metadata_for_transformation()
             self.assertEqual(read_obj.return_value,
                              return_from_function)
+
+    # Test cases for NOTIFICATION
+    def test_send_notifications(self):
+        """Test for function to send emails of log file to personas"""
+        with patch('core.management.utils.notification'
+                   '.EmailMessage') as mock_send:
+            send_notifications(self.receive_email_list, self.sender_email)
+            self.assertEqual(mock_send.call_count, 2)

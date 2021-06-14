@@ -1,14 +1,17 @@
 import logging
-import os
 
 import requests
+
+from core.models import XISConfiguration
 
 logger = logging.getLogger('dict_config_logger')
 
 
 def get_xis_api_endpoint():
-    """Setting API endpoint from XIA and XIS communication """
-    xis_api_endpoint = os.environ.get('XIS_API_ENDPOINT')
+    """Retrieve xis_api_endpoint from XIS configuration """
+    logger.debug("Retrieve xis_api_endpoint from XIS configuration")
+    xis_data = XISConfiguration.objects.first()
+    xis_api_endpoint = xis_data.xis_api_endpoint
     return xis_api_endpoint
 
 

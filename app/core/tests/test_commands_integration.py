@@ -1,6 +1,7 @@
 import logging
 from unittest.mock import patch
 
+import pandas as pd
 from ddt import ddt
 from django.test import tag
 from django.utils import timezone
@@ -17,7 +18,7 @@ from core.management.commands.validate_source_metadata import (
 from core.management.commands.validate_target_metadata import (
     get_target_validation_schema, validate_target_using_key)
 from core.management.utils.xss_client import read_json_data
-from core.models import MetadataLedger, XIAConfiguration
+from core.models import MetadataLedger, XIAConfiguration, XISConfiguration
 
 from .test_setup import TestSetUp
 
@@ -57,7 +58,9 @@ class CommandIntegration(TestSetUp):
     def test_extract_metadata_using_key(self):
         """Test for the keys and hash creation and save in
         Metadata_ledger table """
-        input_data = {1: self.source_metadata}
+        input_data = pd.DataFrame.from_dict([self.source_metadata])
+        xiaConfig = XIAConfiguration(publisher='JKO')
+        xiaConfig.save()
         extract_metadata_using_key(input_data)
         result_query = MetadataLedger.objects.values(
             'source_metadata_key',
@@ -75,7 +78,7 @@ class CommandIntegration(TestSetUp):
         self.assertEqual(self.source_metadata, result_query.get(
             'source_metadata'))
 
-    # Test cases for validate_source_metadata
+    # # Test cases for validate_source_metadata
 
     def test_get_source_validation_schema(self):
         """Test to retrieve source validation schema from XIA configuration """
@@ -192,7 +195,7 @@ class CommandIntegration(TestSetUp):
         self.assertTrue(result_data.get('target_metadata_key_hash'))
         self.assertTrue(result_data.get('target_metadata'))
         self.assertTrue(result_data.get('target_metadata_hash'))
-
+    #
     # Test cases for validate_target_metadata
 
     def test_get_target_validation_schema(self):
@@ -303,6 +306,9 @@ class CommandIntegration(TestSetUp):
             'target_metadata_key_hash')
         xiaConfig = XIAConfiguration(publisher='JKO')
         xiaConfig.save()
+        xisConfig = XISConfiguration(
+            xis_api_endpoint=self.xis_api_endpoint_url)
+        xisConfig.save()
         with patch('requests.post') as response_obj:
             response_obj.return_value = response_obj
             response_obj.status_code = 201
@@ -344,6 +350,9 @@ class CommandIntegration(TestSetUp):
             'target_metadata_key_hash')
         xiaConfig = XIAConfiguration(publisher='JKO')
         xiaConfig.save()
+        xisConfig = XISConfiguration(
+            xis_api_endpoint=self.xis_api_endpoint_url)
+        xisConfig.save()
         with patch('requests.post') as response_obj:
             response_obj.return_value = response_obj
             response_obj.status_code = 400

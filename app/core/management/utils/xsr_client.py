@@ -14,5 +14,9 @@ def read_source_file():
     extracted_data = pd.read_excel(file_name, engine='openpyxl')
     std_source_df = extracted_data.where(pd.notnull(extracted_data),
                                          None)
+    #  Creating list of dataframes of sources
+    source_list = [std_source_df]
+
+    logger.debug("Sending source data in dataframe format for EVTVL")
     file_name.delete()
-    return std_source_df
+    return source_list

@@ -8,8 +8,9 @@ from django.db.utils import OperationalError
 from django.test import tag
 from django.utils import timezone
 
+from core.management.commands.conformance_alerts import send_log_email
 from core.management.commands.extract_source_metadata import (
-    add_publisher_to_source, extract_metadata_using_key)
+    add_publisher_to_source, extract_metadata_using_key, get_source_metadata)
 from core.management.commands.load_target_metadata import (
     check_records_to_load_into_xis, post_data_to_xis,
     renaming_xia_for_posting_to_xis)
@@ -20,7 +21,9 @@ from core.management.commands.validate_source_metadata import (
     get_source_metadata_for_validation, validate_source_using_key)
 from core.management.commands.validate_target_metadata import (
     get_target_metadata_for_validation, validate_target_using_key)
-from core.models import MetadataLedger, XIAConfiguration
+from core.models import (MetadataLedger, ReceiverEmailConfiguration,
+                         SenderEmailConfiguration, XIAConfiguration,
+                         XISConfiguration)
 
 from .test_setup import TestSetUp
 
@@ -49,7 +52,19 @@ class CommandTests(TestSetUp):
             call_command('waitdb')
             self.assertEqual(gi.ensure_connection.call_count, 6)
 
-        # Test cases for extract_source_metadata
+    # Test cases for extract_source_metadata
+    def test_get_source_metadata(self):
+        """ Test to retrieving source metadata"""
+        with patch('core.management.commands.extract_source_metadata'
+                   '.read_source_file') as read_obj, patch(
+            'core.management.commands.extract_source_metadata'
+            '.extract_metadata_using_key', return_value=None) as \
+                mock_extract_obj:
+            read_obj.return_value = read_obj
+            read_obj.return_value = [
+                pd.DataFrame.from_dict(self.test_data, orient='index')]
+            get_source_metadata()
+            self.assertEqual(mock_extract_obj.call_count, 1)
 
     def test_add_publisher_to_source(self):
         """Test for Add publisher column to source metadata and return
@@ -68,12 +83,18 @@ class CommandTests(TestSetUp):
     def test_extract_metadata_using_key(self):
         """Test to creating key, hash of key & hash of metadata"""
         data = {1: self.source_metadata}
-        with patch('core.management.commands.extract_source_metadata'
-                   '.get_source_metadata_key_value', return_value=None) as \
-                mock_get_source, \
-                patch('core.management.commands.extract_source_metadata'
-                      '.store_source_metadata',
-                      return_value=None) as mock_store_source:
+        with patch(
+                'core.management.commands.extract_source_metadata'
+                '.add_publisher_to_source',
+                return_value=data), \
+                patch(
+                    'core.management.commands.extract_source_metadata'
+                    '.get_source_metadata_key_value',
+                    return_value=None) as mock_get_source, \
+                patch(
+                    'core.management.commands.extract_source_metadata'
+                    '.store_source_metadata',
+                    return_value=None) as mock_store_source:
             mock_get_source.return_value = mock_get_source
             mock_get_source.exclude.return_value = mock_get_source
             mock_get_source.filter.side_effect = [
@@ -301,6 +322,7 @@ class CommandTests(TestSetUp):
             self.assertEqual(mock_store_target_valid_status.call_count, 0)
 
     # Test cases for load_target_metadata
+
     def test_renaming_xia_for_posting_to_xis(self):
         """Test for Renaming XIA column names to match with XIS column names"""
         with patch('core.management.utils.xia_internal'
@@ -408,11 +430,16 @@ class CommandTests(TestSetUp):
                 patch('core.management.commands.load_target_metadata'
                       '.MetadataLedger.objects') as meta_obj, \
                 patch('requests.post') as response_obj, \
+                patch('core.management.utils.xis_client'
+                      '.XISConfiguration.objects') as xisCfg, \
                 patch('core.management.commands.load_target_metadata'
                       '.check_records_to_load_into_xis',
                       return_value=None) as mock_check_records_to_load:
             xiaConfig = XIAConfiguration(publisher='JKO')
             xiaCfg.first.return_value = xiaConfig
+            xisConfig = XISConfiguration(
+                xis_api_endpoint=self.xis_api_endpoint_url)
+            xisCfg.first.return_value = xisConfig
             response_obj.return_value = response_obj
             response_obj.status_code = 201
 
@@ -425,3 +452,23 @@ class CommandTests(TestSetUp):
             post_data_to_xis(data)
             self.assertEqual(response_obj.call_count, 2)
             self.assertEqual(mock_check_records_to_load.call_count, 1)
+    # Test cases for conformance_alerts
+
+    def test_send_log_email(self):
+        """Test for function to send emails of log file to personas"""
+        with patch('core.management.commands.conformance_alerts'
+                   '.ReceiverEmailConfiguration') as receive_email_cfg, \
+                patch('core.management.commands.conformance_alerts'
+                      '.SenderEmailConfiguration') as sender_email_cfg, \
+                patch('core.management.commands.conformance_alerts'
+                      '.send_notifications', return_value=None
+                      ) as mock_send_notification:
+            receive_email = ReceiverEmailConfiguration(
+                email_address=self.receive_email_list)
+            receive_email_cfg.first.return_value = receive_email
+
+            send_email = SenderEmailConfiguration(
+                sender_email_address=self.sender_email)
+            sender_email_cfg.first.return_value = send_email
+            send_log_email()
+            self.assertEqual(mock_send_notification.call_count, 1)
