@@ -9,12 +9,11 @@ from django.core.mail import EmailMessage
 logger = logging.getLogger('dict_config_logger')
 
 # Create SES client
-ses = boto3.client('ses')
 
 
 def email_verification(email):
     """Function to send email verification"""
-
+    ses = boto3.client('ses')
     check = check_if_email_verified(email)
 
     if check:
@@ -29,7 +28,6 @@ def email_verification(email):
 
 def check_if_email_verified(email):
     """Function to check if email id from user is verified """
-
     list_emails = list_email_verified()
     if email in list_emails:
         logger.info("Email is already Verified")
@@ -40,6 +38,7 @@ def check_if_email_verified(email):
 def list_email_verified():
     """Function to return list of verified emails """
 
+    ses = boto3.client('ses')
     response = ses.list_identities(
         IdentityType='EmailAddress',
         MaxItems=10
@@ -99,6 +98,3 @@ def send_notifications(email, sender):
         except ClientError as e:
             logger.error(e.response['Error']['Message'])
             continue
-        # else:
-        #     logger.info("Email sent! Message ID:"),
-        #     logger.info(HttpResponse('%s' % res))

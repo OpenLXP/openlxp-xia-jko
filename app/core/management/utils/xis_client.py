@@ -8,7 +8,7 @@ logger = logging.getLogger('dict_config_logger')
 
 
 def get_xis_api_endpoint():
-    """Retrieve xis_api_endpoint from XIS configuration """
+    """Retrieve xis api endpoint from XIS configuration """
     logger.debug("Retrieve xis_api_endpoint from XIS configuration")
     xis_data = XISConfiguration.objects.first()
     xis_api_endpoint = xis_data.xis_api_endpoint

@@ -409,6 +409,8 @@ class UtilsTests(TestSetUp):
     def test_send_notifications(self):
         """Test for function to send emails of log file to personas"""
         with patch('core.management.utils.notification'
-                   '.EmailMessage') as mock_send:
+                   '.EmailMessage') as mock_send, \
+                patch('core.management.utils.notification'
+                      '.boto3.client'):
             send_notifications(self.receive_email_list, self.sender_email)
             self.assertEqual(mock_send.call_count, 2)
