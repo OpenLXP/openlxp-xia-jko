@@ -5,6 +5,8 @@ services:
     image: mysql:5.7
     ports:
       - '3306:3306'
+    volumes:
+      - mysql_data:/var/lib/mysql
     environment:
       MYSQL_DATABASE: "${DB_NAME}"
 #      MYSQL_USER: 'root'
@@ -36,7 +38,6 @@ services:
       REQUESTS_CA_BUNDLE: '/etc/ssl/certs/ca-certificates.pem'
       AWS_CA_BUNDLE: '/etc/ssl/certs/ca-certificates.pem'
       SECRET_KEY_VAL: "${SECRET_KEY_VAL}"
-      XSR_API_ENDPOINT: "${XSR_API_ENDPOINT}"
     volumes:
       - ./app:/opt/app/openlxp-xia-jko
     depends_on:
@@ -44,6 +45,52 @@ services:
     networks:
       - openlxp
 
+  redis:
+    image: redis:alpine
+    networks:
+      - openlxp
+
+  celery:
+    build:
+      context: .
+    command: celery -A openlxp_xia_jko_project worker -l info
+    volumes:
+      - ./app:/opt/app/openlxp-xia-jko
+    environment:
+      REQUESTS_CA_BUNDLE: '/etc/ssl/certs/ca-certificates.pem'
+      AWS_CA_BUNDLE: '/etc/ssl/certs/ca-certificates.pem'
+    env_file:
+      - ./.env
+    depends_on:
+      - db_xia_jko
+      - redis
+      - app_xia_jko
+    networks:
+      - openlxp
+    restart: on-failure
+
+  celery-beat:
+    build:
+      context: .
+    command: celery -A openlxp_xia_jko_project beat -l info
+    volumes:
+      - ./app:/opt/app/openlxp-xia-jko
+    environment:
+      REQUESTS_CA_BUNDLE: '/etc/ssl/certs/ca-certificates.pem'
+      AWS_CA_BUNDLE: '/etc/ssl/certs/ca-certificates.pem'
+    env_file:
+      - ./.env
+    depends_on:
+      - db_xia_jko
+      - redis
+      - app_xia_jko
+    networks:
+      - openlxp
+    restart: on-failure
+
 networks:
   openlxp:
     external: true
+
+volumes:
+  mysql_data:

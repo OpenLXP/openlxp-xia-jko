@@ -21,6 +21,5 @@ def response_from_xis(renamed_data):
     headers = {'Content-Type': 'application/json'}
 
     xis_response = requests.post(url=get_xis_api_endpoint(),
-                                 data=renamed_data, headers=headers,
-                                 timeout=6.0)
+                                 data=renamed_data, headers=headers)
     return xis_response
