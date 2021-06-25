@@ -146,7 +146,7 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_BEAT_SCHEDULE = {
     'hello': {
         'task': 'core.tasks.xia_workflow',
-        'schedule': crontab(minute='*/5')  # execute every 7 minute
+        'schedule': crontab(minute='*/2')  # execute every 15 minute
     }
 }
 
