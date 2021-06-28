@@ -27,10 +27,10 @@ def xia_workflow():
     conformance_alerts_class = conformance_alerts_Command()
 
     extract_class.handle()
-    # validate_source_class.handle()
-    # transform_class.handle()
-    # validate_target_class.handle()
-    # load_class.handle()
-    # conformance_alerts_class.handle()
+    validate_source_class.handle()
+    transform_class.handle()
+    validate_target_class.handle()
+    load_class.handle()
+    conformance_alerts_class.handle()
 
     logger.info('COMPLETED WORKFLOW')
