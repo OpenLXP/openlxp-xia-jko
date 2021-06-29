@@ -5,8 +5,8 @@ services:
     image: mysql:5.7
     ports:
       - '3306:3306'
-    volumes:
-      - mysql_data:/var/lib/mysql
+#    volumes:
+#      - mysql_data:/var/lib/mysql
     environment:
       MYSQL_DATABASE: "${DB_NAME}"
 #      MYSQL_USER: 'root'
@@ -72,7 +72,7 @@ services:
   celery-beat:
     build:
       context: .
-    command: celery -A openlxp_xia_jko_project beat -l info
+    command: celery -A openlxp_xia_jko_project beat --scheduler django_celery_beat.schedulers:DatabaseScheduler --loglevel=info --pidfile=/tmp/celerybeat.pid
     volumes:
       - ./app:/opt/app/openlxp-xia-jko
     environment:
@@ -100,5 +100,5 @@ networks:
   openlxp:
     external: true
 
-volumes:
-  mysql_data:
+#volumes:
+#  mysql_data:

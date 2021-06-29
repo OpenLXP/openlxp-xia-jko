@@ -1,25 +1,26 @@
-from celery.utils.collections import OrderedDict
-from django.shortcuts import render
-from core.tasks import xia_workflow
-from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from celery.result import AsyncResult
+from django.http import JsonResponse
 from rest_framework import permissions
-from rest_framework.response import Response
+from rest_framework.decorators import api_view, permission_classes
 
+from core.tasks import xia_workflow
 
 # Create your views here.
+
 
 @api_view(['GET'])
 @permission_classes((permissions.AllowAny,))
 def xia_workflow_api(request):
-
     print('XIA workflow api')
-    result = xia_workflow()
-    print("RESULT")
-    print(result)
-    # print(result.id)
-    # result = OrderedDict()
-    # result['result'] = 'taskid'
-    # result['code'] = status.HTTP_200_OK
-    # result['message'] = 'success'
-    return Response(result, status=status.HTTP_200_OK)
+    task = xia_workflow.delay()
+    return JsonResponse({"task_id": task.id}, status=202)
+
+
+def get_status(request, task_id):
+    task_result = AsyncResult(task_id)
+    result = {
+        "task_id": task_id,
+        "task_status": task_result.status,
+        "task_result": task_result.result
+    }
+    return JsonResponse(result, status=200)

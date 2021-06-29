@@ -14,6 +14,7 @@ import mimetypes
 import os
 import sys
 from pathlib import Path
+
 from celery.schedules import crontab
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -43,6 +44,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'core',
+    'django_celery_beat',
+    'django_celery_results',
 ]
 
 MIDDLEWARE = [
@@ -142,11 +145,18 @@ CELERY_RESULT_BACKEND = "redis://redis:6379"
 CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
-
-CELERY_BEAT_SCHEDULE = {
-    'hello': {
-        'task': 'core.tasks.xia_workflow',
-        'schedule': crontab(minute='*/2')  # execute every 15 minute
+CELERY_TIMEZONE = TIME_ZONE
+#
+# CELERY_BEAT_SCHEDULE = {
+#     'hello': {
+#         'task': 'core.tasks.xia_workflow',
+#         'schedule': crontab(minute='*/10')  # execute every 10 minute
+#     }
+# }
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'my_cache_table',
     }
 }
 

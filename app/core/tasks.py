@@ -1,21 +1,24 @@
-from celery import shared_task
 import logging
-from core.management.commands.extract_source_metadata import Command as \
-    extract_Command
-from core.management.commands.validate_source_metadata import Command as \
-    validate_source_Command
-from core.management.commands.transform_source_metadata import Command as \
-    transform_Command
-from core.management.commands.validate_target_metadata import Command as \
-    validate_target_Command
-from core.management.commands.load_target_metadata import Command as \
-    load_Command
-from core.management.commands.conformance_alerts import Command as \
-    conformance_alerts_Command
+
+from celery import shared_task
+
+from core.management.commands.conformance_alerts import \
+    Command as conformance_alerts_Command
+from core.management.commands.extract_source_metadata import \
+    Command as extract_Command
+from core.management.commands.load_target_metadata import \
+    Command as load_Command
+from core.management.commands.transform_source_metadata import \
+    Command as transform_Command
+from core.management.commands.validate_source_metadata import \
+    Command as validate_source_Command
+from core.management.commands.validate_target_metadata import \
+    Command as validate_target_Command
+
 logger = logging.getLogger('dict_config_logger')
 
 
-@shared_task
+@shared_task(name="workflow_for_xia")
 def xia_workflow():
     """XIA automated workflow"""
 

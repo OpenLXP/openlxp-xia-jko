@@ -18,5 +18,5 @@ def read_source_file():
     source_list = [std_source_df]
 
     logger.debug("Sending source data in dataframe format for EVTVL")
-    #file_name.delete()
+    # file_name.delete()
     return source_list
