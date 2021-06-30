@@ -2,16 +2,15 @@ from celery.result import AsyncResult
 from django.http import JsonResponse
 from rest_framework import permissions
 from rest_framework.decorators import api_view, permission_classes
-
+import logging
 from core.tasks import xia_workflow
-
-# Create your views here.
+logger = logging.getLogger('dict_config_logger')
 
 
 @api_view(['GET'])
 @permission_classes((permissions.AllowAny,))
 def xia_workflow_api(request):
-    print('XIA workflow api')
+    logger.info('XIA workflow api')
     task = xia_workflow.delay()
     return JsonResponse({"task_id": task.id}, status=202)
 

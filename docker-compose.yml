@@ -5,11 +5,8 @@ services:
     image: mysql:5.7
     ports:
       - '3306:3306'
-#    volumes:
-#      - mysql_data:/var/lib/mysql
     environment:
       MYSQL_DATABASE: "${DB_NAME}"
-#      MYSQL_USER: 'root'
       MYSQL_PASSWORD: "${DB_PASSWORD}"
       MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
       MYSQL_HOST: ''
@@ -38,6 +35,9 @@ services:
       REQUESTS_CA_BUNDLE: '/etc/ssl/certs/ca-certificates.pem'
       AWS_CA_BUNDLE: '/etc/ssl/certs/ca-certificates.pem'
       SECRET_KEY_VAL: "${SECRET_KEY_VAL}"
+      LOG_PATH: "${LOG_PATH}"
+      CELERY_BROKER_URL: "${CELERY_BROKER_URL}"
+      CELERY_RESULT_BACKEND: "${CELERY_RESULT_BACKEND}"
     volumes:
       - ./app:/opt/app/openlxp-xia-jko
     depends_on:
@@ -99,6 +99,3 @@ services:
 networks:
   openlxp:
     external: true
-
-#volumes:
-#  mysql_data:
