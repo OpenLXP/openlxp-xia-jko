@@ -2,6 +2,7 @@ import logging
 from unittest.mock import patch
 
 from django.test import tag
+
 from core.tasks import xia_workflow
 
 from .test_setup import TestSetUp

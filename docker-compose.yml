@@ -89,7 +89,7 @@ services:
     restart: on-failure
 
   flower:
-    image: mher/flower
+    image: mher/flower:0.9.7
     command: [ "flower", "--broker=redis://redis:6379/0", "--port=8888" ]
     ports:
       - 8888:8888

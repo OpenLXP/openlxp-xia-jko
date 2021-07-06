@@ -1,9 +1,12 @@
+import logging
+
 from celery.result import AsyncResult
 from django.http import JsonResponse
 from rest_framework import permissions
 from rest_framework.decorators import api_view, permission_classes
-import logging
+
 from core.tasks import xia_workflow
+
 logger = logging.getLogger('dict_config_logger')
 
 
