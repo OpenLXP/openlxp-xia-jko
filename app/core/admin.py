@@ -23,8 +23,10 @@ class XIAConfigurationAdmin(admin.ModelAdmin):
 
 @admin.register(XISConfiguration)
 class XISConfigurationAdmin(admin.ModelAdmin):
-    list_display = ('xis_api_endpoint',)
-    fields = ['xis_api_endpoint']
+    list_display = ('xis_metadata_api_endpoint',
+                    'xis_supplemental_api_endpoint',)
+    fields = ['xis_metadata_api_endpoint',
+              'xis_supplemental_api_endpoint']
 
 
 @admin.register(ReceiverEmailConfiguration)

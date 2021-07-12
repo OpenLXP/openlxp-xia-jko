@@ -307,7 +307,7 @@ class CommandIntegration(TestSetUp):
         xiaConfig = XIAConfiguration(publisher='JKO')
         xiaConfig.save()
         xisConfig = XISConfiguration(
-            xis_api_endpoint=self.xis_api_endpoint_url)
+            xis_metadata_api_endpoint=self.xis_api_endpoint_url)
         xisConfig.save()
         with patch('requests.post') as response_obj:
             response_obj.return_value = response_obj
@@ -351,7 +351,7 @@ class CommandIntegration(TestSetUp):
         xiaConfig = XIAConfiguration(publisher='JKO')
         xiaConfig.save()
         xisConfig = XISConfiguration(
-            xis_api_endpoint=self.xis_api_endpoint_url)
+            xis_metadata_api_endpoint=self.xis_api_endpoint_url)
         xisConfig.save()
         with patch('requests.post') as response_obj:
             response_obj.return_value = response_obj

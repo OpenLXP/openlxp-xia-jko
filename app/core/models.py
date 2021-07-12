@@ -46,8 +46,13 @@ class XIAConfiguration(models.Model):
 class XISConfiguration(models.Model):
     """Model for XIS Configuration """
 
-    xis_api_endpoint = models.CharField(
-        help_text='Enter the XIS API endpoint',
+    xis_metadata_api_endpoint = models.CharField(
+        help_text='Enter the XIS Metadata Ledger API endpoint',
+        max_length=200
+    )
+
+    xis_supplemental_api_endpoint = models.CharField(
+        help_text='Enter the XIS Supplemental Ledger API endpoint',
         max_length=200
     )
 
@@ -152,7 +157,7 @@ class SupplementalLedger(models.Model):
     supplemental_metadata = models.JSONField(blank=True)
     supplemental_metadata_extraction_date = models.DateTimeField(
         auto_now_add=True)
-    supplemental_metadata_metadata_hash = models.CharField(max_length=200)
+    supplemental_metadata_hash = models.CharField(max_length=200)
     supplemental_metadata_key = models.TextField()
     supplemental_metadata_key_hash = models.CharField(max_length=200)
     supplemental_metadata_transformation_date = models.DateTimeField(

@@ -438,7 +438,7 @@ class CommandTests(TestSetUp):
             xiaConfig = XIAConfiguration(publisher='JKO')
             xiaCfg.first.return_value = xiaConfig
             xisConfig = XISConfiguration(
-                xis_api_endpoint=self.xis_api_endpoint_url)
+                xis_metadata_api_endpoint=self.xis_api_endpoint_url)
             xisCfg.first.return_value = xisConfig
             response_obj.return_value = response_obj
             response_obj.status_code = 201
