@@ -69,7 +69,7 @@ def post_data_to_xis(data):
             # Updating status in XIA metadata_ledger to 'Failed'
             MetadataLedger.objects.filter(
                 metadata_record_uuid=uuid_val).update(
-                supplemental_metadata_transmission_status='Failed')
+                target_metadata_transmission_status='Failed')
             raise SystemExit('Exiting! Can not make connection with XIS.')
 
     check_records_to_load_into_xis()
