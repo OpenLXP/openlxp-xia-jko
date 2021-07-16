@@ -15,8 +15,8 @@ from core.management.commands.load_target_metadata import (
     check_records_to_load_into_xis, post_data_to_xis,
     renaming_xia_for_posting_to_xis)
 from core.management.commands.transform_source_metadata import (
-    create_target_metadata_dict, get_source_metadata_for_transformation,
-    transform_source_using_key)
+    create_supplemental_data, create_target_metadata_dict,
+    get_source_metadata_for_transformation, transform_source_using_key)
 from core.management.commands.validate_source_metadata import (
     get_source_metadata_for_validation, validate_source_using_key)
 from core.management.commands.validate_target_metadata import (
@@ -181,13 +181,23 @@ class CommandTests(TestSetUp):
             self.assertEqual(meta_obj.first.return_value,
                              return_from_function)
 
+    def test_create_supplemental_data(self):
+        """Test to check creation of supplemental data from source data"""
+
+        supplemental_data = \
+            create_supplemental_data(self.test_metadata_column_list,
+                                     self.source_metadata_with_supplemental)
+        self.assertEqual(supplemental_data, self.supplemental_data)
+
     def test_create_target_metadata_dict(self):
         """Test for a function to replace and transform source data to target
         data for using target mapping schema"""
         expected_data_dict = {0: self.target_metadata}
         with patch('core.management.utils.xia_internal.dict_flatten',
-                   return_value=self.source_metadata):
-            result_data_dict = create_target_metadata_dict(
+                   return_value=self.source_metadata), \
+                patch('core.management.commands.transform_source_metadata.'
+                      'create_supplemental_data', return_value=None):
+            result_data_dict, supplemental_data = create_target_metadata_dict(
                 self.source_target_mapping, self.source_metadata,
                 self.test_required_column_names)
             self.assertEqual(result_data_dict[0]['Course'].get('CourseCode'),
@@ -452,6 +462,7 @@ class CommandTests(TestSetUp):
             post_data_to_xis(data)
             self.assertEqual(response_obj.call_count, 2)
             self.assertEqual(mock_check_records_to_load.call_count, 1)
+
     # Test cases for conformance_alerts
 
     def test_send_log_email(self):

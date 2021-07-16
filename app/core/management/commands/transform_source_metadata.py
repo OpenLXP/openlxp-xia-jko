@@ -56,7 +56,7 @@ def create_target_metadata_dict(target_mapping_dict, source_data_dict,
     source_data_dict = {
         k: '' if not v else v for k, v in
         source_data_dict.items()}
-
+    # assigning flattened source data
     data_dict = dict_flatten(source_data_dict, required_column_list)
 
     # send values to be skipped while creating supplemental data
@@ -100,12 +100,12 @@ def store_transformed_source_metadata(key_value, key_value_hash,
         target_metadata=target_data_dict,
         target_metadata_hash=hash_value)
 
-    source_metadata_extraction_date = MetadataLedger.objects.values_list(
+    source_extraction_date = MetadataLedger.objects.values_list(
         "source_metadata_extraction_date", flat=True).get(
         source_metadata_key=key_value,
         record_lifecycle_status='Active',
         source_metadata_validation_status='Y')
-    source_metadata_transformation_date = MetadataLedger.objects.values_list(
+    source_transformation_date = MetadataLedger.objects.values_list(
         "source_metadata_transformation_date", flat=True).get(
         source_metadata_key=key_value,
         record_lifecycle_status='Active',
@@ -115,9 +115,8 @@ def store_transformed_source_metadata(key_value, key_value_hash,
         supplemental_metadata_hash=hash_value,
         supplemental_metadata_key=key_value,
         supplemental_metadata_key_hash=key_value_hash,
-        supplemental_metadata_transformation_date=
-        source_metadata_transformation_date,
-        supplemental_metadata_extraction_date=source_metadata_extraction_date,
+        supplemental_metadata_transformation_date=source_transformation_date,
+        supplemental_metadata_extraction_date=source_extraction_date,
         supplemental_metadata=supplemental_data_dict,
         record_lifecycle_status='Active')
 

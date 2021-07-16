@@ -204,6 +204,22 @@ class TestSetUp(TestCase):
                 "EndDate": "end_date"
             }
         }
+
+        self.test_metadata_column_list = [["Test", "Test_id", "Test_url"]]
+
+        self.source_metadata_with_supplemental = {
+            "Test": "0",
+            "Test_id": "2146",
+            "Test_url": "https://example.test.com/",
+            "supplemental_data1": "sample1",
+            "supplemental_data2": "sample2"
+        }
+
+        self.supplemental_data = {
+            "supplemental_data1": "sample1",
+            "supplemental_data2": "sample2"
+        }
+
         self.metadata_invalid = {
             "Test": "0",
             "Test_id": "2146",
