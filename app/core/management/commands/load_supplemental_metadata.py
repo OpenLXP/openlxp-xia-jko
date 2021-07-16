@@ -14,7 +14,7 @@ from core.models import SupplementalLedger
 logger = logging.getLogger('dict_config_logger')
 
 
-def renaming_xia_for_posting_to_xis(data):
+def renaming_xia_supplement_metadata_to_post_to_xis(data):
     """Renaming XIA column names to match with XIS column names"""
     data['unique_record_identifier'] = data.pop('metadata_record_uuid')
     data['metadata'] = data.pop('supplemental_metadata')
@@ -26,11 +26,11 @@ def renaming_xia_for_posting_to_xis(data):
     return data
 
 
-def post_data_to_xis(data):
+def post_supplement_data_to_xis(data):
     """POSTing XIA metadata_ledger to XIS metadata_ledger"""
     # Traversing through each row one by one from data
     for row in data:
-        data = renaming_xia_for_posting_to_xis(row)
+        data = renaming_xia_supplement_metadata_to_post_to_xis(row)
         renamed_data = json.dumps(data, cls=DjangoJSONEncoder)
 
         # Getting UUID to update target_metadata_transmission_status to pending
@@ -72,10 +72,10 @@ def post_data_to_xis(data):
                 target_metadata_transmission_status='Failed')
             raise SystemExit('Exiting! Can not make connection with XIS.')
 
-    check_records_to_load_into_xis()
+    check_supplemental_records_to_load_into_xis()
 
 
-def check_records_to_load_into_xis():
+def check_supplemental_records_to_load_into_xis():
     """Retrieve number of Metadata_Ledger records in XIA to load into XIS  and
     calls the post_data_to_xis accordingly"""
     combined_query = SupplementalLedger.objects.filter(
@@ -96,7 +96,7 @@ def check_records_to_load_into_xis():
         logger.info("Supplemental Metadata Loading in XIS is complete, "
                     "Zero records are available in XIA to transmit")
     else:
-        post_data_to_xis(data)
+        post_supplement_data_to_xis(data)
 
 
 class Command(BaseCommand):
@@ -106,4 +106,4 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         """Metadata is load from XIA Supplemental_Ledger to XIS
         Metadata_Ledger"""
-        check_records_to_load_into_xis()
+        check_supplemental_records_to_load_into_xis()

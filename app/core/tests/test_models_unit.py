@@ -1,7 +1,7 @@
 from django.test import SimpleTestCase, tag
 from django.utils import timezone
 
-from core.models import MetadataLedger, XIAConfiguration
+from core.models import MetadataLedger, SupplementalLedger, XIAConfiguration
 
 
 @tag('unit')
@@ -107,3 +107,62 @@ class ModelTests(SimpleTestCase):
                          target_metadata_validation_date)
         self.assertEqual(metadataLedger.target_metadata_validation_status,
                          target_metadata_validation_status)
+
+    def test_supplemental_ledger_ledger(self):
+        """Test for a new SupplementalLedger entry is successful with
+        defaults"""
+
+        metadata_record_inactivate_date = timezone.now()
+        record_lifecycle_status = 'Active'
+        supplemental_metadata = ''
+        supp_meta_extract_date = timezone.now()
+        supplemental_metadata_hash = '74df499f177d0a7adb3e610302abc6a5'
+        supplemental_metadata_key = 'AGENT_test_key'
+        supplemental_metadata_key_hash = 'f6df40fbbf4a4c4091fbf64c9b6458e0'
+        supp_meta_transform_date = timezone.now()
+        supp_meta_transmit_date = timezone.now()
+        supp_meta_transmit_stat = 'Ready'
+        supp_meta_stat_cd = 200
+
+        supplemental_ledger = SupplementalLedger(
+            metadata_record_inactivation_date=metadata_record_inactivate_date,
+            record_lifecycle_status=record_lifecycle_status,
+            supplemental_metadata=supplemental_metadata,
+            supplemental_metadata_extraction_date=supp_meta_extract_date,
+            supplemental_metadata_hash=supplemental_metadata_hash,
+            supplemental_metadata_key=supplemental_metadata_key,
+            supplemental_metadata_key_hash=supplemental_metadata_key_hash,
+            supplemental_metadata_transformation_date=supp_meta_transform_date,
+            supplemental_metadata_transmission_date=supp_meta_transmit_date,
+            supplemental_metadata_transmission_status=supp_meta_transmit_stat,
+            supplemental_metadata_transmission_status_code=supp_meta_stat_cd
+
+        )
+
+        self.assertEqual(supplemental_ledger.metadata_record_inactivation_date,
+                         metadata_record_inactivate_date)
+        self.assertEqual(supplemental_ledger.record_lifecycle_status,
+                         record_lifecycle_status)
+        self.assertEqual(supplemental_ledger.supplemental_metadata,
+                         supplemental_metadata)
+        self.assertEqual(supplemental_ledger.
+                         supplemental_metadata_extraction_date,
+                         supp_meta_extract_date)
+        self.assertEqual(supplemental_ledger.supplemental_metadata_hash,
+                         supplemental_metadata_hash)
+        self.assertEqual(supplemental_ledger.supplemental_metadata_key,
+                         supplemental_metadata_key)
+        self.assertEqual(supplemental_ledger.supplemental_metadata_key_hash,
+                         supplemental_metadata_key_hash)
+        self.assertEqual(supplemental_ledger.
+                         supplemental_metadata_transformation_date,
+                         supp_meta_transform_date)
+        self.assertEqual(supplemental_ledger.
+                         supplemental_metadata_transmission_date,
+                         supp_meta_transmit_date)
+        self.assertEqual(supplemental_ledger.
+                         supplemental_metadata_transmission_status,
+                         supp_meta_transmit_stat)
+        self.assertEqual(supplemental_ledger.
+                         supplemental_metadata_transmission_status_code,
+                         supp_meta_stat_cd)
