@@ -21,11 +21,12 @@ class TestSetUp(TestCase):
             "LearningResourceIdentifier": "TestData 123",
             "SOURCESYSTEM": "JKO",
             "test_description": "test description",
+            "supplemental_data": "sample1"
         }
 
         self.key_value = "TestData 123_JKO"
         self.key_value_hash = "0a453b6bea6e7b1d25fb9799ef734f57"
-        self.hash_value = "7fc9cb8f88b2c12c421fcce38529d4c7"
+        self.hash_value = "f454114ba41034e14df2a8f3c14a047d"
 
         self.target_metadata = {
             "Course": {

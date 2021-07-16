@@ -18,7 +18,8 @@ from core.management.commands.validate_source_metadata import (
 from core.management.commands.validate_target_metadata import (
     get_target_validation_schema, validate_target_using_key)
 from core.management.utils.xss_client import read_json_data
-from core.models import MetadataLedger, XIAConfiguration, XISConfiguration
+from core.models import (MetadataLedger, SupplementalLedger, XIAConfiguration,
+                         XISConfiguration)
 
 from .test_setup import TestSetUp
 
@@ -180,6 +181,7 @@ class CommandIntegration(TestSetUp):
 
         transform_source_using_key(test_data_dict, self.source_target_mapping,
                                    self.test_required_column_names)
+
         result_data = MetadataLedger.objects.filter(
             source_metadata_key=self.key_value,
             record_lifecycle_status='Active',
@@ -190,12 +192,33 @@ class CommandIntegration(TestSetUp):
             'target_metadata_key_hash',
             'target_metadata',
             'target_metadata_hash').first()
+
+        result_data_supplemental = SupplementalLedger.objects.filter(
+            supplemental_metadata_key=self.key_value,
+            record_lifecycle_status='Active',
+        ).values(
+            'supplemental_metadata_transformation_date',
+            'supplemental_metadata_key',
+            'supplemental_metadata_key_hash',
+            'supplemental_metadata',
+            'supplemental_metadata_hash').first()
+
         self.assertTrue(result_data.get('source_metadata_transformation_date'))
         self.assertTrue(result_data.get('target_metadata_key'))
         self.assertTrue(result_data.get('target_metadata_key_hash'))
         self.assertTrue(result_data.get('target_metadata'))
         self.assertTrue(result_data.get('target_metadata_hash'))
-    #
+        self.assertTrue(result_data_supplemental.
+                        get('supplemental_metadata_transformation_date'))
+        self.assertTrue(result_data_supplemental.
+                        get('supplemental_metadata_key'))
+        self.assertTrue(result_data_supplemental.
+                        get('supplemental_metadata_key_hash'))
+        self.assertTrue(result_data_supplemental.
+                        get('supplemental_metadata'))
+        self.assertTrue(result_data_supplemental.
+                        get('supplemental_metadata_hash'))
+
     # Test cases for validate_target_metadata
 
     def test_get_target_validation_schema(self):

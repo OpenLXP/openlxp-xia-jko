@@ -105,6 +105,7 @@ def store_transformed_source_metadata(key_value, key_value_hash,
         source_metadata_key=key_value,
         record_lifecycle_status='Active',
         source_metadata_validation_status='Y')
+
     source_transformation_date = MetadataLedger.objects.values_list(
         "source_metadata_transformation_date", flat=True).get(
         source_metadata_key=key_value,
