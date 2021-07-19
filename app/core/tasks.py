@@ -6,6 +6,8 @@ from core.management.commands.conformance_alerts import \
     Command as conformance_alerts_Command
 from core.management.commands.extract_source_metadata import \
     Command as extract_Command
+from core.management.commands.load_supplemental_metadata import \
+    Command as load_supplemental_Command
 from core.management.commands.load_target_metadata import \
     Command as load_Command
 from core.management.commands.transform_source_metadata import \
@@ -28,6 +30,7 @@ def xia_workflow():
     transform_class = transform_Command()
     validate_target_class = validate_target_Command()
     load_class = load_Command()
+    load_supplemental_class = load_supplemental_Command()
     conformance_alerts_class = conformance_alerts_Command()
 
     extract_class.handle()
@@ -35,6 +38,7 @@ def xia_workflow():
     transform_class.handle()
     validate_target_class.handle()
     load_class.handle()
+    load_supplemental_class.handle()
     conformance_alerts_class.handle()
 
     logger.info('COMPLETED WORKFLOW')

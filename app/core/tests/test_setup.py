@@ -182,6 +182,34 @@ class TestSetUp(TestCase):
             'provider_name': 'JKO'
         }
 
+        self.xia_supplemental_data = {
+            'metadata_record_uuid': UUID(
+                '09edea0e-6c83-40a6-951e-2acee3e99502'),
+            'supplemental_metadata': {
+                "Field1": "ABC",
+                "Field2": "123",
+                "Field3": "ABC-123"
+            },
+            'supplemental_metadata_hash': 'df0b51d7b45ca29682e930d236963584',
+            'supplemental_metadata_key': 'TestData 123_JKO',
+            'supplemental_metadata_key_hash':
+                '6acf7689ea81a1f792e7668a23b1acf5'
+        }
+
+        self.xis_supplemental_expected_data = {
+            'unique_record_identifier': UUID(
+                '09edea0e-6c83-40a6-951e-2acee3e99502'),
+            'metadata': {
+                "Field1": "ABC",
+                "Field2": "123",
+                "Field3": "ABC-123"
+            },
+            'metadata_hash': 'df0b51d7b45ca29682e930d236963584',
+            'metadata_key': 'TestData 123_JKO',
+            'metadata_key_hash':
+                '6acf7689ea81a1f792e7668a23b1acf5',
+            'provider_name': 'JKO'
+        }
         self.source_target_mapping = {
             "Course": {
                 "CourseProviderName": "SOURCESYSTEM",
@@ -278,6 +306,8 @@ class TestSetUp(TestCase):
             "key3": ["val3"]}
 
         self.xis_api_endpoint_url = 'http://openlxp-xis:8020/api/metadata/'
+        self.xis_supplemental_api_endpoint_url = 'http://openlxp-xis:8020' \
+                                                 '/api/supplemental-data/'
 
         self.receive_email_list = ['receiver1@openlxp.com',
                                    'receiver1@openlxp.com']
