@@ -30,16 +30,16 @@ def get_source_metadata_for_transformation():
     return source_data_dict
 
 
-def create_supplemental_data(metadata_columns, supplemental_data_dict):
-    """Function to identify supplemental data and store them"""
+def create_supplemental_metadata(metadata_columns, supplemental_metadata):
+    """Function to identify supplemental metadata store them"""
 
     for metadata_column_list in metadata_columns:
         for column in metadata_column_list:
-            supplemental_data_dict.pop(column, None)
-    return supplemental_data_dict
+            supplemental_metadata.pop(column, None)
+    return supplemental_metadata
 
 
-def create_target_metadata_dict(target_mapping_dict, source_data_dict,
+def create_target_metadata_dict(target_mapping_dict, source_metadata,
                                 required_column_list):
     """Function to replace and transform source data to target data for
     using target mapping schema"""
@@ -50,21 +50,21 @@ def create_target_metadata_dict(target_mapping_dict, source_data_dict,
         orient='index')
 
     # Flatten source data dictionary for replacing and transformation
-    source_data_dict = dict_flatten(source_data_dict, required_column_list)
+    source_metadata = dict_flatten(source_metadata, required_column_list)
 
     # Updating null values with empty strings for replacing metadata
-    source_data_dict = {
+    source_metadata = {
         k: '' if not v else v for k, v in
-        source_data_dict.items()}
+        source_metadata.items()}
     # assigning flattened source data
-    data_dict = dict_flatten(source_data_dict, required_column_list)
+    metadata = dict_flatten(source_metadata, required_column_list)
 
     # send values to be skipped while creating supplemental data
-    supplemental_data_dict = \
-        create_supplemental_data(target_schema.values.tolist(), data_dict)
+    supplemental_metadata = \
+        create_supplemental_metadata(target_schema.values.tolist(), metadata)
 
     # Replacing metadata schema with mapped values from source metadata
-    target_schema = target_schema.replace(source_data_dict)
+    target_schema = target_schema.replace(source_metadata)
 
     # Dropping index value and creating json object
     target_data = target_schema.apply(lambda x: [x.dropna()],
@@ -77,12 +77,12 @@ def create_target_metadata_dict(target_mapping_dict, source_data_dict,
     # values in target with new value
     target_data_dict = target_data_df.to_dict(orient='index')
 
-    return target_data_dict, supplemental_data_dict
+    return target_data_dict, supplemental_metadata
 
 
 def store_transformed_source_metadata(key_value, key_value_hash,
                                       target_data_dict,
-                                      hash_value, supplemental_data_dict):
+                                      hash_value, supplemental_metadata):
     """Storing target metadata in MetadataLedger"""
     data_for_transformation = MetadataLedger.objects.filter(
         source_metadata_key=key_value,
@@ -100,26 +100,28 @@ def store_transformed_source_metadata(key_value, key_value_hash,
         target_metadata=target_data_dict,
         target_metadata_hash=hash_value)
 
-    source_extraction_date = MetadataLedger.objects.values_list(
-        "source_metadata_extraction_date", flat=True).get(
-        source_metadata_key=key_value,
-        record_lifecycle_status='Active',
-        source_metadata_validation_status='Y')
+    # check if metadata has corresponding supplemental values and store
+    if supplemental_metadata:
+        source_extraction_date = MetadataLedger.objects.values_list(
+            "source_metadata_extraction_date", flat=True).get(
+            source_metadata_key=key_value,
+            record_lifecycle_status='Active',
+            source_metadata_validation_status='Y')
 
-    source_transformation_date = MetadataLedger.objects.values_list(
-        "source_metadata_transformation_date", flat=True).get(
-        source_metadata_key=key_value,
-        record_lifecycle_status='Active',
-        source_metadata_validation_status='Y')
+        transformation_date = MetadataLedger.objects.values_list(
+            "source_metadata_transformation_date", flat=True).get(
+            source_metadata_key=key_value,
+            record_lifecycle_status='Active',
+            source_metadata_validation_status='Y')
 
-    SupplementalLedger.objects.get_or_create(
-        supplemental_metadata_hash=hash_value,
-        supplemental_metadata_key=key_value,
-        supplemental_metadata_key_hash=key_value_hash,
-        supplemental_metadata_transformation_date=source_transformation_date,
-        supplemental_metadata_extraction_date=source_extraction_date,
-        supplemental_metadata=supplemental_data_dict,
-        record_lifecycle_status='Active')
+        SupplementalLedger.objects.get_or_create(
+            supplemental_metadata_hash=hash_value,
+            supplemental_metadata_key=key_value,
+            supplemental_metadata_key_hash=key_value_hash,
+            supplemental_metadata_transformation_date=transformation_date,
+            supplemental_metadata_extraction_date=source_extraction_date,
+            supplemental_metadata=supplemental_metadata,
+            record_lifecycle_status='Active')
 
 
 def transform_source_using_key(source_data_dict, target_mapping_dict,
@@ -133,7 +135,7 @@ def transform_source_using_key(source_data_dict, target_mapping_dict,
     for ind in range(len_source_metadata):
         for table_column_name in source_data_dict[ind]:
 
-            target_data_dict, supplemental_data_dict = \
+            target_data_dict, supplemental_metadata = \
                 create_target_metadata_dict(target_mapping_dict,
                                             source_data_dict
                                             [ind]
@@ -157,7 +159,7 @@ def transform_source_using_key(source_data_dict, target_mapping_dict,
                                                   target_data_dict[
                                                       ind1],
                                                   hash_value,
-                                                  supplemental_data_dict)
+                                                  supplemental_metadata)
 
 
 class Command(BaseCommand):
