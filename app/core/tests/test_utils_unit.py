@@ -16,7 +16,7 @@ from core.management.utils.xia_internal import (dict_flatten,
                                                 replace_field_on_target_schema,
                                                 update_flattened_object)
 from core.management.utils.xis_client import (
-    get_xis_metadata_api_endpoint, get_xis_supplemental_api_endpoint)
+    get_xis_metadata_api_endpoint, get_xis_supplemental_metadata_api_endpoint)
 from core.management.utils.xss_client import (
     get_aws_bucket_name, get_required_fields_for_validation,
     get_source_validation_schema, get_target_metadata_for_transformation,
@@ -339,29 +339,26 @@ class UtilsTests(TestSetUp):
     def test_get_xis_metadata_api_endpoint(self):
         """Test to retrieve xis_metadata_api_endpoint from XIS configuration"""
         with patch('core.management.utils.xis_client'
-                   '.XISConfiguration.objects') as xisCfg, \
-                patch('requests.post', return_value=400):
+                   '.XISConfiguration.objects') as xisCfg:
             xisConfig = XISConfiguration(
                 xis_metadata_api_endpoint=self.xis_api_endpoint_url)
             xisCfg.first.return_value = xisConfig
-            renamed_data = self.xis_expected_data
-            return_from_function = get_xis_metadata_api_endpoint(renamed_data)
-            self.assertTrue(return_from_function)
+            return_from_function = get_xis_metadata_api_endpoint()
+            self.assertEqual(xisConfig.xis_metadata_api_endpoint,
+                             return_from_function)
 
-    def test_get_xis_supplemental_api_endpoint(self):
+    def test_get_xis_supplemental_metadata_api_endpoint(self):
         """Test to retrieve xis_supplemental_api_endpoint from XIS
         configuration"""
         with patch('core.management.utils.xis_client'
-                   '.XISConfiguration.objects') as xisCfg, \
-                patch('requests.post', return_value=400):
+                   '.XISConfiguration.objects') as xisCfg:
             xisConfig = XISConfiguration(
                 xis_supplemental_api_endpoint=self.
                 xis_supplemental_api_endpoint_url)
             xisCfg.first.return_value = xisConfig
-            renamed_data = self.xis_supplemental_expected_data
-            return_from_function = get_xis_supplemental_api_endpoint(
-                renamed_data)
-            self.assertTrue(return_from_function)
+            return_from_function = get_xis_supplemental_metadata_api_endpoint()
+            self.assertEqual(xisConfig.xis_supplemental_api_endpoint,
+                             return_from_function)
 
     # Test cases for XSS_CLIENT
 
