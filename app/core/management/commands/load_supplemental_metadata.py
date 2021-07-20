@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from core.management.utils.xia_internal import get_publisher_detail
 from core.management.utils.xis_client import \
-    response_from_xis_supplemental_ledger
+    posting_supplemental_metadata_to_xis
 from core.models import SupplementalLedger
 
 logger = logging.getLogger('dict_config_logger')
@@ -45,7 +45,7 @@ def post_supplemental_metadata_to_xis(data):
 
         # POSTing data to XIS
         try:
-            xis_response = response_from_xis_supplemental_ledger(
+            xis_response = posting_supplemental_metadata_to_xis(
                 renamed_data)
 
             # Receiving XIS response after validation and updating
@@ -75,10 +75,10 @@ def post_supplemental_metadata_to_xis(data):
                 target_metadata_transmission_status='Failed')
             raise SystemExit('Exiting! Can not make connection with XIS.')
 
-    get_supplemental_records_to_load_into_xis()
+    load_supplemental_metadata_to_xis()
 
 
-def get_supplemental_records_to_load_into_xis():
+def load_supplemental_metadata_to_xis():
     """Retrieve number of Metadata_Ledger records in XIA to load into XIS  and
     calls the post_data_to_xis accordingly"""
     combined_query = SupplementalLedger.objects.filter(
@@ -109,4 +109,4 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         """Metadata is load from XIA Supplemental_Ledger to XIS
         Metadata_Ledger"""
-        get_supplemental_records_to_load_into_xis()
+        load_supplemental_metadata_to_xis()

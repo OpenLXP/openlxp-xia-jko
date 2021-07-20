@@ -26,7 +26,7 @@ def get_xis_supplemental_metadata_api_endpoint():
     return xis_supplemental_api_endpoint
 
 
-def response_from_xis_metadata_ledger(renamed_data):
+def posting_metadata_ledger_to_xis(renamed_data):
     """This function post data to XIS and returns the XIS response to
             XIA load_target_metadata() """
     headers = {'Content-Type': 'application/json'}
@@ -36,7 +36,7 @@ def response_from_xis_metadata_ledger(renamed_data):
     return xis_response
 
 
-def response_from_xis_supplemental_ledger(renamed_data):
+def posting_supplemental_metadata_to_xis(renamed_data):
     """This function post data to XIS and returns the XIS response to
             XIA load_target_metadata() """
     headers = {'Content-Type': 'application/json'}

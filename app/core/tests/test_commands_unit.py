@@ -12,7 +12,7 @@ from core.management.commands.conformance_alerts import send_log_email
 from core.management.commands.extract_source_metadata import (
     add_publisher_to_source, extract_metadata_using_key, get_source_metadata)
 from core.management.commands.load_supplemental_metadata import (
-    get_supplemental_records_to_load_into_xis,
+    load_supplemental_metadata_to_xis,
     post_supplemental_metadata_to_xis, rename_supplemental_metadata_fields)
 from core.management.commands.load_target_metadata import (
     get_records_to_load_into_xis, post_data_to_xis,
@@ -493,7 +493,7 @@ class CommandTests(TestSetUp):
                 self.xis_supplemental_expected_data['provider_name'],
                 return_data['provider_name'])
 
-    def test_get_supplemental_records_to_load_into_xis_one_record(self):
+    def test_load_supplemental_metadata_to_xis_one_record(self):
         """Test to Retrieve number of Metadata_Ledger records in XIA to load
         into XIS  and calls the post_data_to_xis accordingly"""
         with patch('core.management.commands.load_supplemental_metadata'
@@ -513,11 +513,11 @@ class CommandTests(TestSetUp):
             meta_obj.exclude.return_value = meta_obj
             meta_obj.values.return_value = [meta_data]
             meta_obj.filter.side_effect = [meta_obj, meta_obj]
-            get_supplemental_records_to_load_into_xis()
+            load_supplemental_metadata_to_xis()
             self.assertEqual(
                 mock_post_data_to_xis.call_count, 1)
 
-    def test_get_supplemental_records_to_load_into_xis_zero(self):
+    def test_load_supplemental_metadata_to_xis_zero(self):
         """Test to Retrieve number of Metadata_Ledger records in XIA to load
         into XIS  and calls the post_data_to_xis accordingly"""
         with patch('core.management.commands.load_supplemental_metadata'
@@ -528,7 +528,7 @@ class CommandTests(TestSetUp):
             meta_obj.return_value = meta_obj
             meta_obj.exclude.return_value = meta_obj
             meta_obj.filter.side_effect = [meta_obj, meta_obj]
-            get_supplemental_records_to_load_into_xis()
+            load_supplemental_metadata_to_xis()
             self.assertEqual(
                 mock_post_data_to_xis.call_count, 0)
 
@@ -547,7 +547,7 @@ class CommandTests(TestSetUp):
                       '.SupplementalLedger.objects') as meta_obj, \
                 patch('requests.post') as response_obj, \
                 patch('core.management.commands.load_supplemental_metadata'
-                      '.get_supplemental_records_to_load_into_xis',
+                      '.load_supplemental_metadata_to_xis',
                       return_value=None) as mock_check_records_to_load:
             xiaConfig = XIAConfiguration(publisher='JKO')
             xiaCfg.first.return_value = xiaConfig
@@ -582,7 +582,7 @@ class CommandTests(TestSetUp):
                 patch('core.management.utils.xis_client'
                       '.XISConfiguration.objects') as xisCfg, \
                 patch('core.management.commands.load_supplemental_metadata'
-                      '.get_supplemental_records_to_load_into_xis',
+                      '.load_supplemental_metadata_to_xis',
                       return_value=None) as mock_check_records_to_load:
             xiaConfig = XIAConfiguration(publisher='JKO')
             xiaCfg.first.return_value = xiaConfig

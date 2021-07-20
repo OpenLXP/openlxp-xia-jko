@@ -8,7 +8,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from core.management.utils.xia_internal import get_publisher_detail
-from core.management.utils.xis_client import response_from_xis_metadata_ledger
+from core.management.utils.xis_client import posting_metadata_ledger_to_xis
 from core.models import MetadataLedger
 
 logger = logging.getLogger('dict_config_logger')
@@ -43,7 +43,7 @@ def post_data_to_xis(data):
 
         # POSTing data to XIS
         try:
-            xis_response = response_from_xis_metadata_ledger(renamed_data)
+            xis_response = posting_metadata_ledger_to_xis(renamed_data)
 
             # Receiving XIS response after validation and updating
             # metadata_ledger
