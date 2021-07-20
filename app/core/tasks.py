@@ -21,7 +21,7 @@ logger = logging.getLogger('dict_config_logger')
 
 
 @shared_task(name="workflow_for_xia")
-def xia_workflow():
+def execute_xia_automated_workflow():
     """XIA automated workflow"""
     logger.info('STARTING WORKFLOW')
 

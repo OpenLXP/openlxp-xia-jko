@@ -5,16 +5,16 @@ from django.http import JsonResponse
 from rest_framework import permissions
 from rest_framework.decorators import api_view, permission_classes
 
-from core.tasks import xia_workflow
+from core.tasks import execute_xia_automated_workflow
 
 logger = logging.getLogger('dict_config_logger')
 
 
 @api_view(['GET'])
 @permission_classes((permissions.AllowAny,))
-def xia_workflow_api(request):
+def execute_xia_automated_workflow_api(request):
     logger.info('XIA workflow api')
-    task = xia_workflow.delay()
+    task = execute_xia_automated_workflow.delay()
     return JsonResponse({"task_id": task.id}, status=202)
 
 

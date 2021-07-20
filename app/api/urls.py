@@ -8,5 +8,5 @@ router = DefaultRouter()
 app_name = 'api'
 
 urlpatterns = [
-    path('xia-workflow/', views.xia_workflow_api),
+    path('xia-workflow/', views.execute_xia_automated_workflow_api),
 ]
