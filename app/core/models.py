@@ -171,7 +171,7 @@ class SupplementalLedger(models.Model):
         blank=True, null=True)
 
 
-class MetadataFieldOverride(TimeStampedModel):
+class MetadataFieldOverwrite(TimeStampedModel):
     """Model for taking list of fields name and it's values for overwriting
     field values in Source metadata"""
 
@@ -184,4 +184,4 @@ class MetadataFieldOverride(TimeStampedModel):
         return f'{self.id}'
 
     def save(self, *args, **kwargs):
-        return super(MetadataFieldOverride, self).save(*args, **kwargs)
+        return super(MetadataFieldOverwrite, self).save(*args, **kwargs)

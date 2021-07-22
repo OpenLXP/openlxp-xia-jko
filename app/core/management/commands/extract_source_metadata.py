@@ -10,7 +10,7 @@ from core.management.utils.xia_internal import (convert_date_to_isoformat,
                                                 get_publisher_detail,
                                                 get_source_metadata_key_value)
 from core.management.utils.xsr_client import read_source_file
-from core.models import MetadataLedger, MetadataFieldOverride
+from core.models import MetadataLedger, MetadataFieldOverwrite
 
 logger = logging.getLogger('dict_config_logger')
 
@@ -50,7 +50,7 @@ def override_metadata_field(source_df):
     logger.info("Overwrite & append metadata fields with admin entered values")
 
     # looping through fields to be override or appended
-    for each in MetadataFieldOverride.objects.all():
+    for each in MetadataFieldOverwrite.objects.all():
         column = each.field_name
         value = each.field_value
         overwrite_flag = each.overwrite

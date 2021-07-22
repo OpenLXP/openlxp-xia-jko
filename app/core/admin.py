@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from .models import (ReceiverEmailConfiguration, SenderEmailConfiguration,
                      XIAConfiguration, XISConfiguration,
-                     MetadataFieldOverride)
+                     MetadataFieldOverwrite)
 
 # Register your models here.
 
@@ -40,8 +40,8 @@ class SenderEmailConfigurationAdmin(admin.ModelAdmin):
     list_display = ('sender_email_address',)
 
 
-@admin.register(MetadataFieldOverride)
-class MetadataFieldOverride(admin.ModelAdmin):
+@admin.register(MetadataFieldOverwrite)
+class MetadataFieldOverwriteAdmin(admin.ModelAdmin):
     list_display = ('field_name',
                     'field_value',
                     'overwrite',)
