@@ -10,7 +10,7 @@ from core.management.utils.xia_internal import (convert_date_to_isoformat,
                                                 get_publisher_detail,
                                                 get_source_metadata_key_value)
 from core.management.utils.xsr_client import read_source_file
-from core.models import MetadataLedger
+from core.models import MetadataLedger, MetadataFieldOverride
 
 logger = logging.getLogger('dict_config_logger')
 
@@ -42,6 +42,29 @@ def add_publisher_to_source(source_df):
         logger.warning("Publisher field is empty!")
     # Assign publisher column to source data
     source_df['SOURCESYSTEM'] = publisher
+    return source_df
+
+
+def override_metadata_field(source_df):
+    """Overwrite & append metadata fields with admin entered values """
+    logger.info("Overwrite & append metadata fields with admin entered values")
+
+    # looping through fields to be override or appended
+    for each in MetadataFieldOverride.objects.all():
+        column = each.field_name
+        value = each.field_value
+        overwrite_flag = each.overwrite
+
+        # field should be overwritten and append
+        if overwrite_flag:
+            source_df[column] = value
+        # skip field to be overwritten and append
+        else:
+            if column not in source_df.columns:
+                source_df[column] = value
+            else:
+                source_df.loc[source_df[column].isnull(), column] = value
+    #  return source metadata as dictionary
     source_data_dict = source_df.to_dict(orient='index')
     return source_data_dict
 
@@ -74,7 +97,8 @@ def store_source_metadata(key_value, key_value_hash, hash_value, metadata):
 def extract_metadata_using_key(source_df):
     """Creating key, hash of key & hash of metadata """
     # Convert source data to dictionary and add publisher to metadata
-    source_data_dict = add_publisher_to_source(source_df)
+    source_df = add_publisher_to_source(source_df)
+    source_data_dict = override_metadata_field(source_df)
 
     logger.info('Setting record_status & deleted_date for updated record')
     logger.info('Getting existing records or creating new record to '
