@@ -33,6 +33,18 @@ def get_source_metadata():
         extract_metadata_using_key(std_source_df)
 
 
+def get_metadata_fields_to_overwrite(metadata_df):
+    """looping through fields to be overwrite or appended"""
+    for each in MetadataFieldOverwrite.objects.all():
+        column = each.field_name
+        value = each.field_value
+        overwrite_flag = each.overwrite
+
+        metadata_df = overwrite_append_metadata(metadata_df, column, value,
+                                                overwrite_flag)
+    return metadata_df
+
+
 def add_publisher_to_source(source_df):
     """Add publisher column to source metadata and return source metadata"""
 
@@ -45,27 +57,28 @@ def add_publisher_to_source(source_df):
     return source_df
 
 
-def overwrite_metadata_field(source_df):
+def overwrite_append_metadata(metadata_df, column, value, overwrite_flag):
+    """Overwrite & append metadata fields based on overwrite flag """
+
+    # field should be overwritten and append
+    if overwrite_flag:
+        metadata_df[column] = value
+    # skip field to be overwritten and append
+    else:
+        if column not in metadata_df.columns:
+            metadata_df[column] = value
+        else:
+            metadata_df.loc[metadata_df[column].isnull(), column] = value
+    return metadata_df
+
+
+def overwrite_metadata_field(metadata_df):
     """Overwrite & append metadata fields with admin entered values """
     logger.info("Overwrite & append metadata fields with admin entered values")
-
-    # looping through fields to be overwrite or appended
-    for each in MetadataFieldOverwrite.objects.all():
-        column = each.field_name
-        value = each.field_value
-        overwrite_flag = each.overwrite
-
-        # field should be overwritten and append
-        if overwrite_flag:
-            source_df[column] = value
-        # skip field to be overwritten and append
-        else:
-            if column not in source_df.columns:
-                source_df[column] = value
-            else:
-                source_df.loc[source_df[column].isnull(), column] = value
-    #  return source metadata as dictionary
-    source_data_dict = source_df.to_dict(orient='index')
+    # get metadata fields to be overwritten and appended and replace values
+    metadata_df = get_metadata_fields_to_overwrite(metadata_df)
+    # return source metadata as dictionary
+    source_data_dict = metadata_df.to_dict(orient='index')
     return source_data_dict
 
 
