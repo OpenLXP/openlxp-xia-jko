@@ -3,7 +3,7 @@ import uuid
 from django.db import models
 from django.forms import ValidationError
 from django.urls import reverse
-
+from model_utils.models import TimeStampedModel
 from core.management.utils.notification import email_verification
 
 
@@ -169,3 +169,19 @@ class SupplementalLedger(models.Model):
         choices=RECORD_TRANSMISSION_STATUS_CHOICES)
     supplemental_metadata_transmission_status_code = models.IntegerField(
         blank=True, null=True)
+
+
+class MetadataFieldOverride(TimeStampedModel):
+    """Model for taking list of fields name and it's values for overwriting
+    field values in Source metadata"""
+
+    field_name = models.CharField(max_length=200)
+    field_value = models.CharField(max_length=200)
+    overwrite = models.BooleanField()
+
+    def __str__(self):
+        """String for representing the Model object."""
+        return f'{self.id}'
+
+    def save(self, *args, **kwargs):
+        return super(MetadataFieldOverride, self).save(*args, **kwargs)
