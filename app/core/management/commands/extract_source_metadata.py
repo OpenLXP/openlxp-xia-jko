@@ -45,11 +45,11 @@ def add_publisher_to_source(source_df):
     return source_df
 
 
-def override_metadata_field(source_df):
+def overwrite_metadata_field(source_df):
     """Overwrite & append metadata fields with admin entered values """
     logger.info("Overwrite & append metadata fields with admin entered values")
 
-    # looping through fields to be override or appended
+    # looping through fields to be overwrite or appended
     for each in MetadataFieldOverwrite.objects.all():
         column = each.field_name
         value = each.field_value
@@ -98,7 +98,8 @@ def extract_metadata_using_key(source_df):
     """Creating key, hash of key & hash of metadata """
     # Convert source data to dictionary and add publisher to metadata
     source_df = add_publisher_to_source(source_df)
-    source_data_dict = override_metadata_field(source_df)
+    # Overwrite & append metadata fields with admin entered values
+    source_data_dict = overwrite_metadata_field(source_df)
 
     logger.info('Setting record_status & deleted_date for updated record')
     logger.info('Getting existing records or creating new record to '
