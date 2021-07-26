@@ -1,6 +1,7 @@
 import datetime
 import hashlib
 import logging
+from distutils.util import strtobool
 
 from core.models import XIAConfiguration
 
@@ -245,7 +246,7 @@ def type_cast_overwritten_values(field_type, field_value):
                          " do not match")
     if field_type == "bool":
         try:
-            value = bool(field_value)
+            value = strtobool(field_value)
         except ValueError:
             logger.error("Field Value " + field_value +
                          " and Field Data type " + field_type +
