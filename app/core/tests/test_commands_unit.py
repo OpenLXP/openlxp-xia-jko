@@ -12,8 +12,8 @@ from core.management.commands.conformance_alerts import send_log_email
 from core.management.commands.extract_source_metadata import (
     add_publisher_to_source, extract_metadata_using_key, get_source_metadata)
 from core.management.commands.load_supplemental_metadata import (
-    load_supplemental_metadata_to_xis,
-    post_supplemental_metadata_to_xis, rename_supplemental_metadata_fields)
+    load_supplemental_metadata_to_xis, post_supplemental_metadata_to_xis,
+    rename_supplemental_metadata_fields)
 from core.management.commands.load_target_metadata import (
     get_records_to_load_into_xis, post_data_to_xis,
     rename_metadata_ledger_fields)

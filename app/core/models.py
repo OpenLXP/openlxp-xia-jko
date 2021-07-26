@@ -4,6 +4,7 @@ from django.db import models
 from django.forms import ValidationError
 from django.urls import reverse
 from model_utils.models import TimeStampedModel
+
 from core.management.utils.notification import email_verification
 
 
@@ -175,7 +176,16 @@ class MetadataFieldOverwrite(TimeStampedModel):
     """Model for taking list of fields name and it's values for overwriting
     field values in Source metadata"""
 
+    COLOR_CHOICES = (
+        ('datetime', 'DATETIME'),
+        ('int', 'INTEGER'),
+        ('char', 'CHARACTER'),
+        ('bool', 'BOOLEAN'),
+        ('txt', 'TEXT'),
+    )
+
     field_name = models.CharField(max_length=200)
+    field_type = models.CharField(max_length=200, choices=COLOR_CHOICES)
     field_value = models.CharField(max_length=200)
     overwrite = models.BooleanField()
 

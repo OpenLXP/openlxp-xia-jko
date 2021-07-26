@@ -226,6 +226,28 @@ def update_flattened_object(str_obj, prefix, flatten_dict):
 
 
 def convert_date_to_isoformat(date):
+    """function to convert date to ISO format"""
     if isinstance(date, datetime.datetime):
         date = date.isoformat()
     return date
+
+
+def type_cast_overwritten_values(field_type, field_value):
+    """function to check type of overwritten value and convert it into
+    required format"""
+    value = field_value
+    if field_type == "int":
+        try:
+            value = int(field_value)
+        except ValueError:
+            logger.error("Field Value " + field_value +
+                         " and Field Data type " + field_type +
+                         " do not match")
+    if field_type == "bool":
+        try:
+            value = bool(field_value)
+        except ValueError:
+            logger.error("Field Value " + field_value +
+                         " and Field Data type " + field_type +
+                         " do not match")
+    return value

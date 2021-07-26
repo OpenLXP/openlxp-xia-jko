@@ -8,9 +8,10 @@ from django.utils import timezone
 
 from core.management.utils.xia_internal import (convert_date_to_isoformat,
                                                 get_publisher_detail,
-                                                get_source_metadata_key_value)
+                                                get_source_metadata_key_value,
+                                                type_cast_overwritten_values)
 from core.management.utils.xsr_client import read_source_file
-from core.models import MetadataLedger, MetadataFieldOverwrite
+from core.models import MetadataFieldOverwrite, MetadataLedger
 
 logger = logging.getLogger('dict_config_logger')
 
@@ -37,8 +38,9 @@ def get_metadata_fields_to_overwrite(metadata_df):
     """looping through fields to be overwrite or appended"""
     for each in MetadataFieldOverwrite.objects.all():
         column = each.field_name
-        value = each.field_value
         overwrite_flag = each.overwrite
+        # checking and converting type of overwritten values
+        value = type_cast_overwritten_values(each.field_type, each.field_value)
 
         metadata_df = overwrite_append_metadata(metadata_df, column, value,
                                                 overwrite_flag)

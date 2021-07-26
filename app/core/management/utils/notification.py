@@ -8,8 +8,6 @@ from django.core.mail import EmailMessage
 
 logger = logging.getLogger('dict_config_logger')
 
-# Create SES client
-
 
 def email_verification(email):
     """Function to send email verification"""
