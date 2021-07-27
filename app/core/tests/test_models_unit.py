@@ -1,7 +1,9 @@
 from django.test import SimpleTestCase, tag
 from django.utils import timezone
 
-from core.models import MetadataLedger, SupplementalLedger, XIAConfiguration
+from core.models import (MetadataLedger, SupplementalLedger, XIAConfiguration,
+                         XISConfiguration, SenderEmailConfiguration,
+                         ReceiverEmailConfiguration, MetadataFieldOverwrite)
 
 
 @tag('unit')
@@ -25,6 +27,43 @@ class ModelTests(SimpleTestCase):
                          source_target_mapping)
         self.assertEqual(xiaConfig.target_metadata_schema,
                          target_metadata_schema)
+
+    def test_create_xis_configuration(self):
+        """Test that creating a new XIS Configuration entry is successful
+        with defaults """
+        xis_metadata_api_endpoint = 'http://localhost:8000/api/metadata/'
+        xis_supplemental_api_endpoint = 'http://localhost:8000/api/supplement/'
+
+        xisConfig = XISConfiguration(
+            xis_metadata_api_endpoint=xis_metadata_api_endpoint,
+            xis_supplemental_api_endpoint=xis_supplemental_api_endpoint)
+
+        self.assertEqual(xisConfig.xis_supplemental_api_endpoint,
+                         xis_supplemental_api_endpoint)
+        self.assertEqual(xisConfig.xis_supplemental_api_endpoint,
+                         xis_supplemental_api_endpoint)
+
+    def test_create_sender_email_config(self):
+        """Test that creating a new Sender Email Configuration entry is
+        successful with defaults """
+        sender_email_address = 'example@test.com'
+
+        sender_email_Config = SenderEmailConfiguration(
+            sender_email_address=sender_email_address)
+
+        self.assertEqual(sender_email_Config.sender_email_address,
+                         sender_email_address)
+
+    def test_create_receiver_email_config(self):
+        """Test that creating a new Receiver Email Configuration entry is
+        successful with defaults """
+        email_address = 'example@test.com'
+
+        receiver_email_Config = ReceiverEmailConfiguration(
+            email_address=email_address)
+
+        self.assertEqual(receiver_email_Config.email_address,
+                         email_address)
 
     def test_metadata_ledger(self):
         """Test for a new Metadata_Ledger entry is successful with defaults"""
@@ -166,3 +205,26 @@ class ModelTests(SimpleTestCase):
         self.assertEqual(supplemental_ledger.
                          supplemental_metadata_transmission_status_code,
                          supp_meta_stat_cd)
+
+    def test_metadata_field_overwrite(self):
+        """Test that creating a new Metadata Field Overwrite entry is
+        successful with defaults """
+        field_name = 'test_fields'
+        field_type = 'int'
+        field_value = '1234'
+        overwrite = 'Yes'
+
+        metadata_field_overwrite = MetadataFieldOverwrite(
+            field_name=field_name,
+            field_type=field_type,
+            field_value=field_value,
+            overwrite=overwrite)
+
+        self.assertEqual(metadata_field_overwrite.field_name,
+                         field_name)
+        self.assertEqual(metadata_field_overwrite.field_type,
+                         field_type)
+        self.assertEqual(metadata_field_overwrite.field_value,
+                         field_value)
+        self.assertEqual(metadata_field_overwrite.overwrite,
+                         overwrite)
