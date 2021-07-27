@@ -14,7 +14,8 @@ from core.management.utils.xia_internal import (dict_flatten,
                                                 get_source_metadata_key_value,
                                                 get_target_metadata_key_value,
                                                 replace_field_on_target_schema,
-                                                update_flattened_object)
+                                                update_flattened_object,
+                                                type_cast_overwritten_values)
 from core.management.utils.xis_client import (
     get_xis_metadata_api_endpoint, get_xis_supplemental_metadata_api_endpoint)
 from core.management.utils.xss_client import (
@@ -334,6 +335,16 @@ class UtilsTests(TestSetUp):
         update_flattened_object(value, prefix, flatten_dict)
         self.assertTrue(flatten_dict)
 
+    @data(('int', '1234'), ('bool', 'Yes'))
+    @unpack
+    def test_type_cast_overwritten_values(self, first_value, second_value):
+        """Test the function to check type of overwritten value and convert it
+        into required format"""
+        field_type = first_value
+        field_value = second_value
+        values = type_cast_overwritten_values(field_type, field_value)
+        self.assertTrue(values)
+
     # Test cases for XIS_CLIENT
 
     def test_get_xis_metadata_api_endpoint(self):
@@ -353,8 +364,7 @@ class UtilsTests(TestSetUp):
         with patch('core.management.utils.xis_client'
                    '.XISConfiguration.objects') as xisCfg:
             xisConfig = XISConfiguration(
-                xis_supplemental_api_endpoint=self.
-                xis_supplemental_api_endpoint_url)
+                xis_supplemental_api_endpoint=self.supplemental_api_endpoint)
             xisCfg.first.return_value = xisConfig
             return_from_function = get_xis_supplemental_metadata_api_endpoint()
             self.assertEqual(xisConfig.xis_supplemental_api_endpoint,

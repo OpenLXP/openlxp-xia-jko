@@ -306,8 +306,8 @@ class TestSetUp(TestCase):
             "key3": ["val3"]}
 
         self.xis_api_endpoint_url = 'http://openlxp-xis:8020/api/metadata/'
-        self.xis_supplemental_api_endpoint_url = 'http://openlxp-xis:8020' \
-                                                 '/api/supplemental-data/'
+        self.supplemental_api_endpoint = 'http://openlxp-xis:8020' \
+                                         '/api/supplemental-data/'
 
         self.receive_email_list = ['receiver1@openlxp.com',
                                    'receiver1@openlxp.com']
