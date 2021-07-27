@@ -1,5 +1,6 @@
 from uuid import UUID
 
+import pandas as pd
 from django.test import TestCase
 
 
@@ -312,6 +313,9 @@ class TestSetUp(TestCase):
         self.receive_email_list = ['receiver1@openlxp.com',
                                    'receiver1@openlxp.com']
         self.sender_email = "sender@openlxp.com"
+
+        self.metadata_df = pd.DataFrame.from_dict({1: self.source_metadata},
+                                                  orient='index')
 
         return super().setUp()
 

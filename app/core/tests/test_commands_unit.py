@@ -10,7 +10,9 @@ from django.utils import timezone
 
 from core.management.commands.conformance_alerts import send_log_email
 from core.management.commands.extract_source_metadata import (
-    add_publisher_to_source, extract_metadata_using_key, get_source_metadata)
+    add_publisher_to_source, extract_metadata_using_key,
+    get_metadata_fields_to_overwrite, get_source_metadata,
+    overwrite_append_metadata, overwrite_metadata_field)
 from core.management.commands.load_supplemental_metadata import (
     load_supplemental_metadata_to_xis, post_supplemental_metadata_to_xis,
     rename_supplemental_metadata_fields)
@@ -24,9 +26,10 @@ from core.management.commands.validate_source_metadata import (
     get_source_metadata_for_validation, validate_source_using_key)
 from core.management.commands.validate_target_metadata import (
     get_target_metadata_for_validation, validate_target_using_key)
-from core.models import (MetadataLedger, ReceiverEmailConfiguration,
-                         SenderEmailConfiguration, SupplementalLedger,
-                         XIAConfiguration, XISConfiguration)
+from core.models import (MetadataFieldOverwrite, MetadataLedger,
+                         ReceiverEmailConfiguration, SenderEmailConfiguration,
+                         SupplementalLedger, XIAConfiguration,
+                         XISConfiguration)
 
 from .test_setup import TestSetUp
 
@@ -110,6 +113,43 @@ class CommandTests(TestSetUp):
             extract_metadata_using_key(data)
             self.assertEqual(mock_get_source.call_count, 1)
             self.assertEqual(mock_store_source.call_count, 1)
+
+    def test_overwrite_metadata_field(self):
+        """Test to overwrite metadata with admin entered values and
+        return metadata in dictionary format """
+
+        with patch('core.management.commands.extract_source_metadata'
+                   '.get_metadata_fields_to_overwrite') as mock_get_overwrite:
+            mock_get_overwrite.return_value = self.metadata_df
+
+            return_val = overwrite_metadata_field(self.metadata_df)
+            self.assertIsInstance(return_val, dict)
+
+    def test_get_metadata_fields_to_overwrite(self):
+        """Test for looping through fields to be overwrite or appended"""
+        with patch('core.management.commands.extract_source_metadata'
+                   '.MetadataFieldOverwrite.objects') as mock_field, \
+                patch('core.management.commands.extract_source_metadata'
+                      '.overwrite_append_metadata') as mock_overwrite_fun:
+            config = \
+                [MetadataFieldOverwrite(field_name='column1', overwrite=True,
+                                        field_value='value1'),
+                 MetadataFieldOverwrite(field_name='column2', overwrite=False,
+                                        field_value='value2')]
+            mock_field.all.return_value = config
+            mock_overwrite_fun.return_value = self.metadata_df
+
+            return_val = get_metadata_fields_to_overwrite(self.metadata_df)
+            print(return_val)
+            self.assertEqual(mock_overwrite_fun.call_count, 2)
+
+    def test_overwrite_append_metadata(self):
+        """test Overwrite & append metadata fields based on overwrite flag """
+        return_val = \
+            overwrite_append_metadata(self.metadata_df, 'column1', 'value1',
+                                      True)
+
+        self.assertEqual(return_val['column1'].all(), 'value1')
 
     # Test cases for validate_source_metadata
 
