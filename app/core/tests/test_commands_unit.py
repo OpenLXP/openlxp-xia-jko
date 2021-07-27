@@ -80,16 +80,20 @@ class CommandTests(TestSetUp):
             xisCfg.first.return_value = xiaConfig
             test_df = pd.DataFrame.from_dict(self.test_data)
             result = add_publisher_to_source(test_df)
-            key_exist = 'SOURCESYSTEM' in result[0]
+            key_exist = 'SOURCESYSTEM' in result.columns
             self.assertTrue(key_exist)
 
     def test_extract_metadata_using_key(self):
         """Test to creating key, hash of key & hash of metadata"""
+
         data = {1: self.source_metadata}
+        data_df = pd.DataFrame.from_dict(data)
         with patch(
                 'core.management.commands.extract_source_metadata'
                 '.add_publisher_to_source',
-                return_value=data), \
+                return_value=data_df), \
+                patch('core.management.commands.extract_source_metadata'
+                      '.overwrite_metadata_field', return_value=data), \
                 patch(
                     'core.management.commands.extract_source_metadata'
                     '.get_source_metadata_key_value',
@@ -586,9 +590,9 @@ class CommandTests(TestSetUp):
                       return_value=None) as mock_check_records_to_load:
             xiaConfig = XIAConfiguration(publisher='JKO')
             xiaCfg.first.return_value = xiaConfig
-            xisConfig = XISConfiguration(
-                xis_metadata_api_endpoint=self.
-                xis_supplemental_api_endpoint_url)
+            xisConfig = \
+                XISConfiguration(xis_metadata_api_endpoint=self.
+                                 xis_supplemental_api_endpoint_url)
             xisCfg.first.return_value = xisConfig
             response_obj.return_value = response_obj
             response_obj.status_code = 201
