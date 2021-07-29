@@ -171,19 +171,15 @@ class CommandTests(TestSetUp):
     def test_validate_source_using_key_more_than_one(self):
         """Test to Validating source data against required & recommended
         column names for more than one row"""
-        data = [{1: self.source_metadata}, {2: self.source_metadata}]
+        data = [{'source_metadata_key_hash': 123,
+                 'source_metadata': self.source_metadata},
+                {'source_metadata_key_hash': 123,
+                 'source_metadata': self.source_metadata}]
 
         recommended_column_name = []
         with patch('core.management.commands.validate_source_metadata'
-                   '.get_source_metadata_key_value',
-                   return_value=None) as mock_get_source_kv, \
-                patch('core.management.commands.validate_source_metadata'
-                      '.store_source_metadata_validation_status',
-                      return_value=None) as mock_store_source_valid_status:
-            mock_get_source_kv.return_value = mock_get_source_kv
-            mock_get_source_kv.exclude.return_value = mock_get_source_kv
-            mock_get_source_kv.filter.side_effect = [
-                mock_get_source_kv, mock_get_source_kv]
+                   '.store_source_metadata_validation_status',
+                   return_value=None) as mock_store_source_valid_status:
 
             validate_source_using_key(data, self.test_required_column_names,
                                       recommended_column_name)
@@ -192,19 +188,12 @@ class CommandTests(TestSetUp):
 
     def test_validate_source_using_key_more_than_zero(self):
         """Test to Validating source data against required/ recommended column
-            namess with no data"""
+            names with no data"""
         data = []
         recommended_column_name = []
         with patch('core.management.commands.validate_source_metadata'
-                   '.get_source_metadata_key_value',
-                   return_value=None) as mock_get_source_kv, \
-                patch('core.management.commands.validate_source_metadata'
-                      '.store_source_metadata_validation_status',
-                      return_value=None) as mock_store_source_valid_status:
-            mock_get_source_kv.return_value = mock_get_source_kv
-            mock_get_source_kv.exclude.return_value = mock_get_source_kv
-            mock_get_source_kv.filter.side_effect = [
-                mock_get_source_kv, mock_get_source_kv]
+                   '.store_source_metadata_validation_status',
+                   return_value=None) as mock_store_source_valid_status:
 
             validate_source_using_key(data, self.test_required_column_names,
                                       recommended_column_name)
@@ -214,8 +203,8 @@ class CommandTests(TestSetUp):
     # Test cases for transform_source_metadata
 
     def test_get_source_metadata_for_transformation(self):
-        """Test to Retrieving Source metadata from MetadataLedger that needs to be
-        transformed"""
+        """Test to Retrieving Source metadata from MetadataLedger that needs
+        to be transformed"""
         with patch('core.management.commands.transform_source_metadata'
                    '.MetadataLedger.objects') as meta_obj:
             target_data_dict = MetadataLedger.objects.values(
