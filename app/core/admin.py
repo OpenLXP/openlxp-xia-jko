@@ -4,6 +4,7 @@ from .models import (MetadataFieldOverwrite, ReceiverEmailConfiguration,
                      SenderEmailConfiguration, XIAConfiguration,
                      XISConfiguration, XSRConfiguration)
 
+
 # Register your models here.
 
 
@@ -22,21 +23,16 @@ class XIAConfigurationAdmin(admin.ModelAdmin):
 
 @admin.register(XISConfiguration)
 class XISConfigurationAdmin(admin.ModelAdmin):
-    list_display = ('source_file',)
-    fields = ['source_file']
+    list_display = ('xis_metadata_api_endpoint',
+                    'xis_supplemental_api_endpoint',)
+    fields = ['xis_metadata_api_endpoint',
+              'xis_supplemental_api_endpoint']
 
 
 @admin.register(XSRConfiguration)
 class XSRConfigurationAdmin(admin.ModelAdmin):
-    list_display = (
-        'xsr_api_endpoint',
-        'token_url',
-        'edx_client_id',
-        'edx_client_secret',)
-    fields = ['xsr_api_endpoint',
-              'token_url',
-              'edx_client_id',
-              'edx_client_secret']
+    list_display = ('source_file',)
+    fields = ['source_file']
 
 
 @admin.register(ReceiverEmailConfiguration)
