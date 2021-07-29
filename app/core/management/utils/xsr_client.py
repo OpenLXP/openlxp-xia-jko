@@ -3,7 +3,7 @@ import logging
 
 import pandas as pd
 
-from core.models import XIAConfiguration
+from core.models import XSRConfiguration
 
 from core.management.utils.xia_internal import get_key_dict
 
@@ -12,8 +12,8 @@ logger = logging.getLogger('dict_config_logger')
 
 def read_source_file():
     """setting file path from s3 bucket"""
-    xia_data = XIAConfiguration.objects.first()
-    file_name = xia_data.source_file
+    xsr_data = XSRConfiguration.objects.first()
+    file_name = xsr_data.source_file
     extracted_data = pd.read_excel(file_name, engine='openpyxl')
     std_source_df = extracted_data.where(pd.notnull(extracted_data),
                                          None)

@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from .models import (MetadataFieldOverwrite, ReceiverEmailConfiguration,
                      SenderEmailConfiguration, XIAConfiguration,
-                     XISConfiguration)
+                     XISConfiguration, XSRConfiguration)
 
 # Register your models here.
 
@@ -13,21 +13,30 @@ class XIAConfigurationAdmin(admin.ModelAdmin):
         'publisher',
         'source_metadata_schema',
         'source_target_mapping',
-        'target_metadata_schema',
-        'source_file',)
+        'target_metadata_schema',)
     fields = ['publisher',
               'source_metadata_schema',
               ('source_target_mapping',
-               'target_metadata_schema',
-               'source_file')]
+               'target_metadata_schema')]
 
 
 @admin.register(XISConfiguration)
 class XISConfigurationAdmin(admin.ModelAdmin):
-    list_display = ('xis_metadata_api_endpoint',
-                    'xis_supplemental_api_endpoint',)
-    fields = ['xis_metadata_api_endpoint',
-              'xis_supplemental_api_endpoint']
+    list_display = ('source_file',)
+    fields = ['source_file']
+
+
+@admin.register(XSRConfiguration)
+class XSRConfigurationAdmin(admin.ModelAdmin):
+    list_display = (
+        'xsr_api_endpoint',
+        'token_url',
+        'edx_client_id',
+        'edx_client_secret',)
+    fields = ['xsr_api_endpoint',
+              'token_url',
+              'edx_client_id',
+              'edx_client_secret']
 
 
 @admin.register(ReceiverEmailConfiguration)
