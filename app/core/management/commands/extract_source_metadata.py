@@ -8,9 +8,9 @@ from django.utils import timezone
 
 from core.management.utils.xia_internal import (convert_date_to_isoformat,
                                                 get_publisher_detail,
-                                                get_source_metadata_key_value,
                                                 type_cast_overwritten_values)
-from core.management.utils.xsr_client import read_source_file
+from core.management.utils.xsr_client import (read_source_file,
+                                              get_source_metadata_key_value)
 from core.models import MetadataFieldOverwrite, MetadataLedger
 
 logger = logging.getLogger('dict_config_logger')

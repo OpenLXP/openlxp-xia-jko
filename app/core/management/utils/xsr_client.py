@@ -1,8 +1,11 @@
+import hashlib
 import logging
 
 import pandas as pd
 
 from core.models import XIAConfiguration
+
+from core.management.utils.xia_internal import get_key_dict
 
 logger = logging.getLogger('dict_config_logger')
 
@@ -20,3 +23,28 @@ def read_source_file():
     logger.debug("Sending source data in dataframe format for EVTVL")
     # file_name.delete()
     return source_list
+
+
+def get_source_metadata_key_value(data_dict):
+    """Function to create key value for source metadata """
+    # field names depend on source data and SOURCESYSTEM is system generated
+    field = ['LearningResourceIdentifier', 'SOURCESYSTEM']
+    field_values = []
+
+    for item in field:
+        if not data_dict.get(item):
+            logger.info('Field name ' + item + ' is missing for '
+                                               'key creation')
+            return None
+        field_values.append(data_dict.get(item))
+
+    # Key value creation for source metadata
+    key_value = '_'.join(field_values)
+
+    # Key value hash creation for source metadata
+    key_value_hash = hashlib.md5(key_value.encode('utf-8')).hexdigest()
+
+    # Key dictionary creation for source metadata
+    key = get_key_dict(key_value, key_value_hash)
+
+    return key
