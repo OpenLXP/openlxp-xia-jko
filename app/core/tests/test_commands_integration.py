@@ -126,7 +126,7 @@ class CommandIntegration(TestSetUp):
         metadata_ledger.save()
         metadata_ledger_invalid.save()
         result_test_query = MetadataLedger.objects. \
-            values('source_metadata')
+            values('source_metadata_key_hash', 'source_metadata')
         validate_source_using_key(result_test_query,
                                   self.test_required_column_names,
                                   recommended_column_name)
