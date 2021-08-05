@@ -11,12 +11,14 @@ from core.management.commands.extract_source_metadata import (
 from core.management.commands.load_target_metadata import (
     post_data_to_xis, rename_metadata_ledger_fields)
 from core.management.commands.transform_source_metadata import (
-    get_target_metadata_for_transformation, transform_source_using_key)
+    get_target_metadata_for_transformation, store_transformed_source_metadata,
+    transform_source_using_key)
 from core.management.commands.validate_source_metadata import (
     get_source_metadata_for_validation, get_source_validation_schema,
-    validate_source_using_key)
+    store_source_metadata_validation_status, validate_source_using_key)
 from core.management.commands.validate_target_metadata import (
-    get_target_validation_schema, validate_target_using_key)
+    get_target_validation_schema, store_target_metadata_validation_status,
+    validate_target_using_key)
 from core.management.utils.xss_client import read_json_data
 from core.models import (MetadataLedger, SupplementalLedger, XIAConfiguration,
                          XISConfiguration)
@@ -147,6 +149,60 @@ class CommandIntegration(TestSetUp):
         self.assertEqual('Inactive',
                          result_query_invalid['record_lifecycle_status'])
 
+    def test_store_source_metadata_validation_status_valid(self):
+        """Test to store validation status for valid source metadata
+            in metadata ledger """
+
+        metadata_ledger = MetadataLedger(
+            source_metadata=self.source_metadata,
+            source_metadata_key_hash=self.key_value_hash,
+            source_metadata_key=self.key_value)
+        metadata_ledger.save()
+        store_source_metadata_validation_status(MetadataLedger.objects.
+                                                values('source_metadata'),
+                                                self.key_value_hash,
+                                                'Y', 'Active'
+                                                )
+        result_query = MetadataLedger.objects.values(
+            'source_metadata_validation_status',
+            'source_metadata_validation_date',
+            'record_lifecycle_status').filter(
+            source_metadata_key_hash=self.key_value_hash).first()
+
+        self.assertTrue(result_query.get('source_metadata_validation_date'))
+        self.assertEqual("Y", result_query.get(
+            'source_metadata_validation_status'))
+        self.assertEqual('Active', result_query.get(
+            'record_lifecycle_status'))
+
+    def test_store_source_metadata_validation_status_invalid(self):
+        """Test to store validation status for invalid source metadata
+            in metadata ledger """
+
+        metadata_ledger = MetadataLedger(
+            source_metadata=self.source_metadata,
+            source_metadata_key_hash=self.key_value_hash,
+            source_metadata_key=self.key_value)
+        metadata_ledger.save()
+        store_source_metadata_validation_status(MetadataLedger.objects.
+                                                values('source_metadata'),
+                                                self.key_value_hash,
+                                                'N', 'Inactive'
+                                                )
+        result_query = MetadataLedger.objects.values(
+            'metadata_record_inactivation_date',
+            'source_metadata_validation_status',
+            'source_metadata_validation_date',
+            'record_lifecycle_status').filter(
+            source_metadata_key_hash=self.key_value_hash).first()
+
+        self.assertTrue(result_query.get('source_metadata_validation_date'))
+        self.assertTrue(result_query.get('metadata_record_inactivation_date'))
+        self.assertEqual("N", result_query.get(
+            'source_metadata_validation_status'))
+        self.assertEqual('Inactive', result_query.get(
+            'record_lifecycle_status'))
+
     # Test cases for transform_source_metadata
 
     def test_get_target_metadata_for_transformation(self):
@@ -167,7 +223,7 @@ class CommandIntegration(TestSetUp):
         metadata_ledger = MetadataLedger(
             record_lifecycle_status='Active',
             source_metadata=self.source_metadata,
-            source_metadata_hash=self.key_value_hash,
+            source_metadata_key_hash=self.key_value_hash,
             source_metadata_validation_status='Y',
             source_metadata_key=self.key_value,
             source_metadata_validation_date=timezone.now())
@@ -218,6 +274,53 @@ class CommandIntegration(TestSetUp):
                         get('supplemental_metadata'))
         self.assertTrue(result_data_supplemental.
                         get('supplemental_metadata_hash'))
+
+    def test_store_transformed_source_metadata(self):
+        """Test to store transformed metadata and
+        supplemental metadata in metadata ledger """
+
+        metadata_ledger = MetadataLedger(
+            source_metadata=self.source_metadata,
+            source_metadata_key_hash=self.key_value_hash,
+            source_metadata_validation_status='Y',
+            record_lifecycle_status='Active',
+            source_metadata_extraction_date=timezone.now()
+        )
+        metadata_ledger.save()
+
+        store_transformed_source_metadata(self.key_value, self.key_value_hash,
+                                          self.target_metadata,
+                                          self.hash_value,
+                                          self.supplemental_data
+                                          )
+
+        result_query = MetadataLedger.objects.values(
+            'source_metadata_transformation_date',
+            'target_metadata_key_hash',
+            'target_metadata', 'target_metadata_hash').filter(
+            target_metadata_key_hash=self.key_value_hash).first()
+
+        result_query_supplemental = SupplementalLedger.objects.values(
+            'supplemental_metadata_key_hash',
+            'supplemental_metadata_transformation_date',
+            'supplemental_metadata').filter(
+            supplemental_metadata_key_hash=self.key_value_hash).first()
+
+        self.assertTrue(result_query_supplemental.
+                        get('supplemental_metadata_transformation_date'))
+        self.assertEqual(self.key_value_hash, result_query_supplemental.get(
+            'supplemental_metadata_key_hash'))
+        self.assertEqual(self.supplemental_data, result_query_supplemental.get(
+            'supplemental_metadata'))
+
+        self.assertTrue(result_query.
+                        get('source_metadata_transformation_date'))
+        self.assertEqual(self.key_value_hash, result_query.get(
+            'target_metadata_key_hash'))
+        self.assertEqual(self.target_metadata, result_query.get(
+            'target_metadata'))
+        self.assertEqual(self.hash_value, result_query.get(
+            'target_metadata_hash'))
 
     # Test cases for validate_target_metadata
 
@@ -283,6 +386,80 @@ class CommandIntegration(TestSetUp):
         self.assertEqual('N', result_query_invalid.get(
             'target_metadata_validation_status'))
         self.assertEqual('Inactive', result_query_invalid.get(
+            'record_lifecycle_status'))
+
+    def test_store_target_metadata_validation_status_valid(self):
+        """Test to store validation status for valid target metadata
+        in metadata ledger """
+
+        metadata_ledger = MetadataLedger(
+            source_metadata=self.source_metadata,
+            target_metadata=self.target_metadata,
+            target_metadata_key_hash=self.key_value_hash)
+        metadata_ledger.save()
+
+        supplemental_ledger = SupplementalLedger(
+            supplemental_metadata={"key": "value"},
+            supplemental_metadata_key_hash=self.key_value_hash)
+        supplemental_ledger.save()
+        store_target_metadata_validation_status(MetadataLedger.objects.
+                                                values('target_metadata'),
+                                                self.key_value_hash,
+                                                'Y', 'Active'
+                                                )
+        result_query = MetadataLedger.objects.values(
+            'target_metadata_validation_status',
+            'target_metadata_validation_date',
+            'record_lifecycle_status').filter(
+            target_metadata_key_hash=self.key_value_hash).first()
+
+        result_query_supplemental = SupplementalLedger.objects.values(
+            'supplemental_metadata_validation_date').filter(
+            supplemental_metadata_key_hash=self.key_value_hash).first()
+
+        self.assertTrue(result_query_supplemental.
+                        get('supplemental_metadata_validation_date'))
+        self.assertEqual("Y", result_query.get(
+            'target_metadata_validation_status'))
+        self.assertEqual('Active', result_query.get(
+            'record_lifecycle_status'))
+
+    def test_store_target_metadata_validation_status_invalid(self):
+        """Test to store validation status for invalid target metadata
+        in metadata ledger """
+
+        metadata_ledger = MetadataLedger(
+            source_metadata=self.source_metadata,
+            target_metadata=self.target_metadata,
+            target_metadata_key_hash=self.key_value_hash)
+        metadata_ledger.save()
+        supplemental_ledger = SupplementalLedger(
+            supplemental_metadata={"key": "value"},
+            supplemental_metadata_key_hash=self.key_value_hash)
+        supplemental_ledger.save()
+        store_target_metadata_validation_status(MetadataLedger.objects.
+                                                values('target_metadata'),
+                                                self.key_value_hash,
+                                                'N', 'Inactive'
+                                                )
+        result_query = MetadataLedger.objects.values(
+            'metadata_record_inactivation_date',
+            'target_metadata_validation_status',
+            'target_metadata_validation_date',
+            'record_lifecycle_status').filter(
+            target_metadata_key_hash=self.key_value_hash).first()
+
+        result_query_supplemental = SupplementalLedger.objects.values(
+            'supplemental_metadata_validation_date').filter(
+            supplemental_metadata_key_hash=self.key_value_hash).first()
+
+        self.assertTrue(result_query_supplemental.
+                        get('supplemental_metadata_validation_date'))
+        self.assertTrue(result_query.get('target_metadata_validation_date'))
+        self.assertTrue(result_query.get('metadata_record_inactivation_date'))
+        self.assertEqual("N", result_query.get(
+            'target_metadata_validation_status'))
+        self.assertEqual('Inactive', result_query.get(
             'record_lifecycle_status'))
 
     # Test cases for load_target_metadata

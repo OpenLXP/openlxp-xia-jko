@@ -1,9 +1,10 @@
 from django.test import SimpleTestCase, tag
 from django.utils import timezone
 
-from core.models import (MetadataLedger, SupplementalLedger, XIAConfiguration,
-                         XISConfiguration, SenderEmailConfiguration,
-                         ReceiverEmailConfiguration, MetadataFieldOverwrite)
+from core.models import (MetadataFieldOverwrite, MetadataLedger,
+                         ReceiverEmailConfiguration, SenderEmailConfiguration,
+                         SupplementalLedger, XIAConfiguration,
+                         XISConfiguration)
 
 
 @tag('unit')

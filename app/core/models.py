@@ -8,7 +8,7 @@ from model_utils.models import TimeStampedModel
 from core.management.utils.notification import email_verification
 
 
-class XIAConfiguration(models.Model):
+class XIAConfiguration(TimeStampedModel):
     """Model for XIA Configuration """
     publisher = models.CharField(default='JKO', max_length=200,
                                  help_text='Enter the publisher name')
@@ -44,7 +44,7 @@ class XIAConfiguration(models.Model):
         return super(XIAConfiguration, self).save(*args, **kwargs)
 
 
-class XISConfiguration(models.Model):
+class XISConfiguration(TimeStampedModel):
     """Model for XIS Configuration """
 
     xis_metadata_api_endpoint = models.CharField(
@@ -64,7 +64,7 @@ class XISConfiguration(models.Model):
         return super(XISConfiguration, self).save(*args, **kwargs)
 
 
-class ReceiverEmailConfiguration(models.Model):
+class ReceiverEmailConfiguration(TimeStampedModel):
     """Model for Email Configuration """
 
     email_address = models.EmailField(
@@ -85,7 +85,7 @@ class ReceiverEmailConfiguration(models.Model):
         return super(ReceiverEmailConfiguration, self).save(*args, **kwargs)
 
 
-class SenderEmailConfiguration(models.Model):
+class SenderEmailConfiguration(TimeStampedModel):
     """Model for Email Configuration """
 
     sender_email_address = models.EmailField(
@@ -100,7 +100,7 @@ class SenderEmailConfiguration(models.Model):
         return super(SenderEmailConfiguration, self).save(*args, **kwargs)
 
 
-class MetadataLedger(models.Model):
+class MetadataLedger(TimeStampedModel):
     """Model for MetadataLedger """
 
     METADATA_VALIDATION_CHOICES = [('Y', 'Yes'), ('N', 'No')]
@@ -142,7 +142,7 @@ class MetadataLedger(models.Model):
         max_length=10, blank=True, choices=METADATA_VALIDATION_CHOICES)
 
 
-class SupplementalLedger(models.Model):
+class SupplementalLedger(TimeStampedModel):
     """Model for Supplemental Metadata """
 
     RECORD_ACTIVATION_STATUS_CHOICES = [('Active', 'A'), ('Inactive', 'I')]
@@ -162,6 +162,8 @@ class SupplementalLedger(models.Model):
     supplemental_metadata_key = models.TextField()
     supplemental_metadata_key_hash = models.CharField(max_length=200)
     supplemental_metadata_transformation_date = models.DateTimeField(
+        blank=True, null=True)
+    supplemental_metadata_validation_date = models.DateTimeField(
         blank=True, null=True)
     supplemental_metadata_transmission_date = models.DateTimeField(
         blank=True, null=True)

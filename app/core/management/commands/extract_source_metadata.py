@@ -4,7 +4,6 @@ import logging
 
 import pandas as pd
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 
 from core.management.utils.xia_internal import (convert_date_to_isoformat,
                                                 get_publisher_detail,
@@ -88,18 +87,6 @@ def store_source_metadata(key_value, key_value_hash, hash_value, metadata):
     """Extract data from Experience Source Repository(XSR)
         and store in metadata ledger
     """
-    # Setting record_status & deleted_date for updated record
-    MetadataLedger.objects.filter(
-        source_metadata_key_hash=key_value_hash,
-        record_lifecycle_status='Active').exclude(
-        source_metadata_hash=hash_value).update(
-        metadata_record_inactivation_date=timezone.now())
-    MetadataLedger.objects.filter(
-        source_metadata_key_hash=key_value_hash,
-        record_lifecycle_status='Active').exclude(
-        source_metadata_hash=hash_value).update(
-        record_lifecycle_status='Inactive')
-
     # Retrieving existing records or creating new record to MetadataLedger
     MetadataLedger.objects.get_or_create(
         source_metadata_key=key_value,

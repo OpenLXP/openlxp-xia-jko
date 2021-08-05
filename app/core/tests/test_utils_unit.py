@@ -14,8 +14,8 @@ from core.management.utils.xia_internal import (dict_flatten,
                                                 get_source_metadata_key_value,
                                                 get_target_metadata_key_value,
                                                 replace_field_on_target_schema,
-                                                update_flattened_object,
-                                                type_cast_overwritten_values)
+                                                type_cast_overwritten_values,
+                                                update_flattened_object)
 from core.management.utils.xis_client import (
     get_xis_metadata_api_endpoint, get_xis_supplemental_metadata_api_endpoint)
 from core.management.utils.xss_client import (
