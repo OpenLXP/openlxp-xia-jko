@@ -1,28 +1,35 @@
-import hashlib
 import logging
 from unittest.mock import patch
 
-from ddt import data, ddt, unpack
+import pandas as pd
+from ddt import ddt
+from django.core.management import call_command
+from django.db.utils import OperationalError
 from django.test import tag
+from django.utils import timezone
 
-from core.management.utils.notification import send_notifications
-from core.management.utils.xia_internal import (dict_flatten,
-                                                flatten_dict_object,
-                                                flatten_list_object,
-                                                get_key_dict,
-                                                get_publisher_detail,
-                                                get_target_metadata_key_value,
-                                                replace_field_on_target_schema,
-                                                type_cast_overwritten_values,
-                                                update_flattened_object)
-from core.management.utils.xis_client import (
-    get_xis_metadata_api_endpoint, get_xis_supplemental_metadata_api_endpoint)
-from core.management.utils.xsr_client import get_source_metadata_key_value
-from core.management.utils.xss_client import (
-    get_aws_bucket_name, get_required_fields_for_validation,
-    get_source_validation_schema, get_target_metadata_for_transformation,
-    get_target_validation_schema)
-from core.models import XIAConfiguration, XISConfiguration
+from core.management.commands.conformance_alerts import send_log_email
+from core.management.commands.extract_source_metadata import (
+    add_publisher_to_source, extract_metadata_using_key,
+    get_metadata_fields_to_overwrite, get_source_metadata,
+    overwrite_append_metadata, overwrite_metadata_field)
+from core.management.commands.load_supplemental_metadata import (
+    load_supplemental_metadata_to_xis, post_supplemental_metadata_to_xis,
+    rename_supplemental_metadata_fields)
+from core.management.commands.load_target_metadata import (
+    get_records_to_load_into_xis, post_data_to_xis,
+    rename_metadata_ledger_fields)
+from core.management.commands.transform_source_metadata import (
+    create_supplemental_metadata, create_target_metadata_dict,
+    get_source_metadata_for_transformation, transform_source_using_key)
+from core.management.commands.validate_source_metadata import (
+    get_source_metadata_for_validation, validate_source_using_key)
+from core.management.commands.validate_target_metadata import (
+    get_target_metadata_for_validation, validate_target_using_key)
+from core.models import (MetadataFieldOverwrite, MetadataLedger,
+                         ReceiverEmailConfiguration, SenderEmailConfiguration,
+                         SupplementalLedger, XIAConfiguration,
+                         XISConfiguration)
 
 from .test_setup import TestSetUp
 
@@ -31,412 +38,621 @@ logger = logging.getLogger('dict_config_logger')
 
 @tag('unit')
 @ddt
-class UtilsTests(TestSetUp):
-    """Unit Test cases for utils """
+class CommandTests(TestSetUp):
 
-    # Test cases for XIA_INTERNAL
+    # Test cases for waitdb
+    def test_wait_for_db_ready(self):
+        """Test that waiting for db when db is available"""
+        with patch('django.db.utils.ConnectionHandler.__getitem__') as gi:
+            gi.return_value = gi
+            gi.ensure_connection.return_value = True
+            call_command('waitdb')
+            self.assertEqual(gi.call_count, 1)
 
-    def test_get_publisher_detail(self):
-        """Test to retrieve publisher from XIA configuration"""
+    @patch('time.sleep', return_value=True)
+    def test_wait_for_db(self, ts):
+        """Test waiting for db"""
+        with patch('django.db.utils.ConnectionHandler.__getitem__') as gi:
+            gi.return_value = gi
+            gi.ensure_connection.side_effect = [OperationalError] * 5 + [True]
+            call_command('waitdb')
+            self.assertEqual(gi.ensure_connection.call_count, 6)
+
+    # Test cases for extract_source_metadata
+    def test_get_source_metadata(self):
+        """ Test to retrieving source metadata"""
+        with patch('core.management.commands.extract_source_metadata'
+                   '.read_source_file') as read_obj, patch(
+            'core.management.commands.extract_source_metadata'
+            '.extract_metadata_using_key', return_value=None) as \
+                mock_extract_obj:
+            read_obj.return_value = read_obj
+            read_obj.return_value = [
+                pd.DataFrame.from_dict(self.test_data, orient='index')]
+            get_source_metadata()
+            self.assertEqual(mock_extract_obj.call_count, 1)
+
+    def test_add_publisher_to_source(self):
+        """Test for Add publisher column to source metadata and return
+        source metadata"""
         with patch('core.management.utils.xia_internal'
-                   '.XIAConfiguration.objects') as xdsCfg:
+                   '.get_publisher_detail'), \
+                patch('core.management.utils.xia_internal'
+                      '.XIAConfiguration.objects') as xisCfg:
             xiaConfig = XIAConfiguration(publisher='JKO')
-            xdsCfg.first.return_value = xiaConfig
-            return_from_function = get_publisher_detail()
-            self.assertEqual(xiaConfig.publisher, return_from_function)
+            xisCfg.first.return_value = xiaConfig
+            test_df = pd.DataFrame.from_dict(self.test_data)
+            result = add_publisher_to_source(test_df)
+            key_exist = 'SOURCESYSTEM' in result.columns
+            self.assertTrue(key_exist)
 
-    @data(('test_key', 'test_key_hash'), ('test_key1', 'test_key_hash2'))
-    @unpack
-    def test_get_key_dict(self, first_value, second_value):
-        """Test for key dictionary creation"""
-        expected_result = {
-            'key_value': first_value,
-            'key_value_hash': second_value
-        }
-        result = get_key_dict(first_value, second_value)
-        self.assertEquals(result, expected_result)
+    def test_extract_metadata_using_key(self):
+        """Test to creating key, hash of key & hash of metadata"""
 
-    @data(('key_field1', 'key_field2'), ('key_field11', 'key_field22'))
-    @unpack
-    def test_get_source_metadata_key_value(self, first_value, second_value):
-        """Test key dictionary creation for source"""
-        test_dict = {
-            'LearningResourceIdentifier': first_value,
-            'SOURCESYSTEM': second_value
-        }
+        data = {1: self.source_metadata}
+        data_df = pd.DataFrame.from_dict(data)
+        with patch(
+                'core.management.commands.extract_source_metadata'
+                '.add_publisher_to_source',
+                return_value=data_df), \
+                patch('core.management.commands.extract_source_metadata'
+                      '.overwrite_metadata_field', return_value=data), \
+                patch(
+                    'core.management.commands.extract_source_metadata'
+                    '.get_source_metadata_key_value',
+                    return_value=None) as mock_get_source, \
+                patch(
+                    'core.management.commands.extract_source_metadata'
+                    '.store_source_metadata',
+                    return_value=None) as mock_store_source:
+            mock_get_source.return_value = mock_get_source
+            mock_get_source.exclude.return_value = mock_get_source
+            mock_get_source.filter.side_effect = [
+                mock_get_source, mock_get_source]
 
-        expected_key = first_value + '_' + second_value
-        expected_key_hash = hashlib.md5(expected_key.encode('utf-8')). \
-            hexdigest()
+            extract_metadata_using_key(data)
+            self.assertEqual(mock_get_source.call_count, 1)
+            self.assertEqual(mock_store_source.call_count, 1)
 
-        result_key_dict = get_source_metadata_key_value(test_dict)
-        self.assertEqual(result_key_dict['key_value'], expected_key)
-        self.assertEqual(result_key_dict['key_value_hash'], expected_key_hash)
+    def test_overwrite_metadata_field(self):
+        """Test to overwrite metadata with admin entered values and
+        return metadata in dictionary format """
 
-    def test_replace_field_on_target_schema(self):
-        """test to check if values under educational context are replaced"""
-        test_dict0 = {'0': {
-            "Course": {
-                "EducationalContext": "Y"
-            }
-        }
-        }
+        with patch('core.management.commands.extract_source_metadata'
+                   '.get_metadata_fields_to_overwrite') as mock_get_overwrite:
+            mock_get_overwrite.return_value = self.metadata_df
 
-        test_dict1 = {'1': {
-            "Course": {
-                "EducationalContext": "n"
-            }
-        }
-        }
+            return_val = overwrite_metadata_field(self.metadata_df)
+            self.assertIsInstance(return_val, dict)
 
-        replace_field_on_target_schema('0', test_dict0)
-        self.assertEqual(test_dict0['0']['Course']['EducationalContext'],
-                         'Mandatory')
+    def test_get_metadata_fields_to_overwrite(self):
+        """Test for looping through fields to be overwrite or appended"""
+        with patch('core.management.commands.extract_source_metadata'
+                   '.MetadataFieldOverwrite.objects') as mock_field, \
+                patch('core.management.commands.extract_source_metadata'
+                      '.overwrite_append_metadata') as mock_overwrite_fun:
+            config = \
+                [MetadataFieldOverwrite(field_name='column1', overwrite=True,
+                                        field_value='value1'),
+                 MetadataFieldOverwrite(field_name='column2', overwrite=False,
+                                        field_value='value2')]
+            mock_field.all.return_value = config
+            mock_overwrite_fun.return_value = self.metadata_df
 
-        replace_field_on_target_schema('1', test_dict1)
-        self.assertEqual(test_dict1['1']['Course']['EducationalContext'],
-                         'Non - Mandatory')
+            return_val = get_metadata_fields_to_overwrite(self.metadata_df)
+            print(return_val)
+            self.assertEqual(mock_overwrite_fun.call_count, 2)
 
-    @data(('key_field1', 'key_field2'), ('key_field11', 'key_field22'))
-    @unpack
-    def test_get_target_metadata_key_value(self, first_value, second_value):
-        """Test key dictionary creation for target"""
+    def test_overwrite_append_metadata(self):
+        """test Overwrite & append metadata fields based on overwrite flag """
+        return_val = \
+            overwrite_append_metadata(self.metadata_df, 'column1', 'value1',
+                                      True)
 
-        test_dict = {'Course': {
-            'CourseCode': first_value,
-            'CourseProviderName': second_value
-        }}
+        self.assertEqual(return_val['column1'].all(), 'value1')
 
-        expected_key = first_value + '_' + second_value
-        expected_key_hash = hashlib.md5(expected_key.encode('utf-8')). \
-            hexdigest()
+    # Test cases for validate_source_metadata
 
-        result_key_dict = get_target_metadata_key_value(test_dict)
-        self.assertEqual(result_key_dict['key_value'], expected_key)
-        self.assertEqual(result_key_dict['key_value_hash'], expected_key_hash)
+    def test_get_source_metadata_for_validation(self):
+        """Test to Retrieving source metadata from MetadataLedger that needs
+        to be validated"""
+        with patch('core.management.commands.validate_source_metadata'
+                   '.MetadataLedger.objects') as meta_obj:
+            meta_ledger = MetadataLedger.objects.values(
+                source_metadata=self.source_metadata).filter(
+                source_metadata_validation_status='',
+                record_lifecycle_status='Active').exclude(
+                source_metadata_extraction_date=None)
+            meta_obj.first.return_value = meta_ledger
+            return_from_function = get_source_metadata_for_validation()
+            self.assertEqual(meta_obj.first.return_value,
+                             return_from_function)
 
-    def test_dict_flatten(self):
-        """Test function to navigate to value in source
-        metadata to be validated"""
-        test_data_dict = {"key1": "value1",
-                          "key2": {"sub_key1": "sub_value1"},
-                          "key3": [{"sub_key2": "sub_value2"},
-                                   {"sub_key3": "sub_value3"}]}
+    def test_validate_source_using_key_more_than_one(self):
+        """Test to Validating source data against required & recommended
+        column names for more than one row"""
+        data = [{'source_metadata_key_hash': 123,
+                 'source_metadata': self.source_metadata},
+                {'source_metadata_key_hash': 123,
+                 'source_metadata': self.source_metadata}]
 
-        with patch('core.management.utils.xia_internal.flatten_list_object') \
-                as mock_flatten_list, \
-                patch('core.management.utils.xia_internal.flatten_dict_'
-                      'object') as mock_flatten_dict, \
-                patch('core.management.utils.xia_internal.update_flattened_'
-                      'object') as mock_update_flattened:
-            mock_flatten_list.return_value = mock_flatten_list
-            mock_flatten_list.return_value = None
-            mock_flatten_dict.return_value = mock_flatten_dict
-            mock_flatten_dict.return_value = None
-            mock_update_flattened.return_value = mock_update_flattened
-            mock_update_flattened.return_value = None
+        recommended_column_name = []
+        with patch('core.management.commands.validate_source_metadata'
+                   '.store_source_metadata_validation_status',
+                   return_value=None) as mock_store_source_valid_status:
 
-        return_value = dict_flatten(test_data_dict,
-                                    self.test_required_column_names)
-        self.assertTrue(return_value)
+            validate_source_using_key(data, self.test_required_column_names,
+                                      recommended_column_name)
+            self.assertEqual(
+                mock_store_source_valid_status.call_count, 2)
 
-    @data(
-        ([{'a.b': None, 'a.c': 'value2', 'd': None},
-          {'a.b': 'value1', 'a.c': 'value2', 'd': None}]))
-    def test_flatten_list_object_loop(self, value):
-        """Test the looping od the function to flatten
-        list object when the value is list"""
-        prefix = 'a'
-        flatten_dict = {}
-        required_list = ['a.b', 'a.c', 'd']
-        with patch('core.management.utils.xia_internal.flatten_list_object') \
-                as mock_flatten_list, \
-                patch('core.management.utils.xia_internal.flatten_dict_'
-                      'object') as mock_flatten_dict, \
-                patch('core.management.utils.xia_internal.update_flattened_'
-                      'object') as mock_update_flattened:
-            mock_flatten_list.return_value = mock_flatten_list
-            mock_flatten_list.return_value = None
-            mock_flatten_dict.return_value = mock_flatten_dict
-            mock_flatten_dict.return_value = None
-            mock_update_flattened.side_effect = flatten_dict = \
-                {'a.b': None, 'a.c': 'value2'}
+    def test_validate_source_using_key_more_than_zero(self):
+        """Test to Validating source data against required/ recommended column
+            names with no data"""
+        data = []
+        recommended_column_name = []
+        with patch('core.management.commands.validate_source_metadata'
+                   '.store_source_metadata_validation_status',
+                   return_value=None) as mock_store_source_valid_status:
 
-            flatten_list_object(value, prefix, flatten_dict, required_list)
-            self.assertEqual(mock_flatten_dict.call_count, 2)
+            validate_source_using_key(data, self.test_required_column_names,
+                                      recommended_column_name)
+            self.assertEqual(
+                mock_store_source_valid_status.call_count, 0)
 
-    @data(
-        ([{'b': [None]}]))
-    def test_flatten_list_object_multilevel(self, value):
-        """Test the function to flatten list object
-         when the value is list for multilevel lists"""
-        prefix = 'a'
-        flatten_dict = {}
-        required_list = ['a.b', 'd']
-        with patch('core.management.utils.xia_internal.flatten_list_object') \
-                as mock_flatten_list, \
-                patch('core.management.utils.xia_internal.flatten_dict_'
-                      'object') as mock_flatten_dict, \
-                patch('core.management.utils.xia_internal.update_flattened_'
-                      'object') as mock_update_flattened:
-            mock_flatten_list.return_value = mock_update_flattened
-            mock_flatten_dict.return_value = mock_flatten_list()
-            mock_update_flattened.side_effect = flatten_dict = \
-                {'a.b': None}
+    # Test cases for transform_source_metadata
 
-            flatten_list_object(value, prefix, flatten_dict, required_list)
-            self.assertEqual(mock_flatten_list.call_count, 1)
+    def test_get_source_metadata_for_transformation(self):
+        """Test to Retrieving Source metadata from MetadataLedger that needs
+        to be transformed"""
+        with patch('core.management.commands.transform_source_metadata'
+                   '.MetadataLedger.objects') as meta_obj:
+            target_data_dict = MetadataLedger.objects.values(
+                source_data_dict=self.source_metadata).filter(
+                source_metadata_validation_status='Y',
+                record_lifecycle_status='Active').exclude(
+                source_metadata_validation_date=None)
+            meta_obj.first.return_value = target_data_dict
+            return_from_function = get_source_metadata_for_transformation()
+            self.assertEqual(meta_obj.first.return_value,
+                             return_from_function)
 
-    @data(([{'A': 'a'}]), ([{'B': 'b', 'C': 'c'}]))
-    def test_flatten_list_object_list(self, value):
-        """Test the function to flatten list object when the value is list"""
-        prefix = 'test'
-        flatten_dict = []
-        with patch('core.management.utils.xia_internal.flatten_list_object') \
-                as mock_flatten_list, \
-                patch('core.management.utils.xia_internal.flatten_dict_'
-                      'object') as mock_flatten_dict, \
-                patch('core.management.utils.xia_internal.update_flattened_'
-                      'object') as mock_update_flattened:
-            mock_flatten_list.return_value = mock_flatten_list
-            mock_flatten_list.return_value = None
-            mock_flatten_dict.return_value = mock_flatten_dict
-            mock_flatten_dict.return_value = None
-            mock_update_flattened.return_value = mock_update_flattened
-            mock_update_flattened.return_value = None
+    def test_create_supplemental_data(self):
+        """Test to check creation of supplemental data from source data"""
 
-            flatten_list_object(value, prefix, flatten_dict,
-                                self.test_required_column_names)
+        supplemental_data = \
+            create_supplemental_metadata(self.test_metadata_column_list,
+                                         self.
+                                         source_metadata_with_supplemental)
+        print(supplemental_data)
+        self.assertEqual(supplemental_data, self.supplemental_data)
 
-            self.assertEqual(mock_flatten_dict.call_count, 1)
+    def test_create_target_metadata_dict(self):
+        """Test for a function to replace and transform source data to target
+        data for using target mapping schema"""
+        expected_data_dict = {0: self.target_metadata}
+        with patch('core.management.utils.xia_internal.dict_flatten',
+                   return_value=self.source_metadata), \
+                patch('core.management.commands.transform_source_metadata.'
+                      'create_supplemental_metadata', return_value=None):
+            result_data_dict, supplemental_data = create_target_metadata_dict(
+                self.source_target_mapping, self.source_metadata,
+                self.test_required_column_names)
+            self.assertEqual(result_data_dict[0]['Course'].get('CourseCode'),
+                             expected_data_dict[0]['Course'].get('CourseCode'))
+            self.assertEqual(
+                result_data_dict[0]['Course'].get('CourseProviderName'),
+                expected_data_dict[0]['Course'].get('CourseProviderName'))
 
-    @data(([{'A': 'a'}]), ([{'B': 'b', 'C': 'c'}]))
-    def test_flatten_list_object_dict(self, value):
-        """Test the function to flatten list object when the value is dict"""
-        prefix = 'test'
-        flatten_dict = []
-        with patch('core.management.utils.xia_internal.flatten_list_object') \
-                as mock_flatten_list, \
-                patch('core.management.utils.xia_internal.flatten_dict_'
-                      'object') as mock_flatten_dict, \
-                patch('core.management.utils.xia_internal.update_flattened_'
-                      'object') as mock_update_flattened:
-            mock_flatten_list.return_value = mock_flatten_list
-            mock_flatten_list.return_value = None
-            mock_flatten_dict.return_value = mock_flatten_dict
-            mock_flatten_dict.return_value = None
-            mock_update_flattened.return_value = mock_update_flattened
-            mock_update_flattened.return_value = None
+    def test_transform_source_using_key_more_zero(self):
+        """Test for transforming source data using target metadata schema
+        with no data"""
+        data = []
+        with patch('core.management.utils.xia_internal'
+                   '.get_target_metadata_key_value',
+                   return_value=None), \
+                patch('core.management.commands.transform_source_metadata'
+                      '.store_transformed_source_metadata',
+                      return_value=None) as mock_store_transformed_source:
+            mock_store_transformed_source.return_value = \
+                mock_store_transformed_source
+            mock_store_transformed_source.exclude.return_value = \
+                mock_store_transformed_source
+            mock_store_transformed_source.filter.side_effect = [
+                mock_store_transformed_source, mock_store_transformed_source]
 
-            flatten_list_object(value, prefix, flatten_dict,
-                                self.test_required_column_names)
+            transform_source_using_key(data, self.source_target_mapping,
+                                       self.test_required_column_names)
 
-            self.assertEqual(mock_flatten_dict.call_count, 1)
+            self.assertEqual(
+                mock_store_transformed_source.call_count, 0)
 
-    @data((['hello']), (['hi']))
-    def test_flatten_list_object_str(self, value):
-        """Test the function to flatten list object when the value is string"""
-        prefix = 'test'
-        flatten_dict = []
-        with patch('core.management.utils.xia_internal.flatten_list_object') \
-                as mock_flatten_list, \
-                patch('core.management.utils.xia_internal.flatten_dict_'
-                      'object') as mock_flatten_dict, \
-                patch('core.management.utils.xia_internal.update_flattened_'
-                      'object') as mock_update_flattened:
-            mock_flatten_list.return_value = mock_flatten_list
-            mock_flatten_list.return_value = None
-            mock_flatten_dict.return_value = mock_flatten_dict
-            mock_flatten_dict.return_value = None
-            mock_update_flattened.return_value = mock_update_flattened
-            mock_update_flattened.return_value = None
-            flatten_list_object(value, prefix, flatten_dict,
-                                self.test_required_column_names)
+    def test_transform_source_using_key_more_than_one(self):
+        """Test for transforming source data using target metadata schema for
+        more than one row"""
+        data = [{0: self.source_metadata},
+                {1: self.source_metadata}]
+        with patch('core.management.utils.xia_internal'
+                   '.get_target_metadata_key_value',
+                   return_value=None), \
+                patch('core.management.commands.transform_source_metadata'
+                      '.store_transformed_source_metadata',
+                      return_value=None) as mock_store_transformed_source:
+            mock_store_transformed_source.return_value = \
+                mock_store_transformed_source
+            mock_store_transformed_source.exclude.return_value = \
+                mock_store_transformed_source
+            mock_store_transformed_source.filter.side_effect = [
+                mock_store_transformed_source, mock_store_transformed_source]
 
-            self.assertEqual(mock_update_flattened.call_count, 1)
+            transform_source_using_key(data, self.source_target_mapping,
+                                       self.test_required_column_names)
 
-    @data(({'abc': {'A': 'a'}}), ({'xyz': {'B': 'b'}}))
-    def test_flatten_dict_object_dict(self, value):
-        """Test the function to flatten dictionary object when input value is
-        a dict"""
-        prefix = 'test'
-        flatten_dict = []
-        with patch('core.management.utils.xia_internal.flatten_list_object') \
-                as mock_flatten_list, \
-                patch('core.management.utils.xia_internal.flatten_dict_'
-                      'object') as mock_flatten_dict, \
-                patch('core.management.utils.xia_internal.update_flattened_'
-                      'object') as mock_update_flattened:
-            mock_flatten_list.return_value = mock_flatten_list
-            mock_flatten_list.return_value = None
-            mock_flatten_dict.return_value = mock_flatten_dict
-            mock_flatten_dict.return_value = None
-            mock_update_flattened.return_value = mock_update_flattened
-            mock_update_flattened.return_value = None
+            self.assertEqual(
+                mock_store_transformed_source.call_count, 2)
 
-            flatten_dict_object(value, prefix, flatten_dict,
-                                self.test_required_column_names)
+    # Test cases for validate_target_metadata
 
-            self.assertEqual(mock_flatten_dict.call_count, 1)
+    def test_get_target_metadata_for_validation(self):
+        """Test to Retrieving target metadata from MetadataLedger that needs
+        to be validated"""
+        with patch('core.management.commands.validate_target_metadata'
+                   '.MetadataLedger.objects') as meta_obj:
+            target_data_dict = MetadataLedger.objects.values(
+                target_metadata=self.target_metadata).filter(
+                target_metadata_validation_status='',
+                record_lifecycle_status='Active').exclude(
+                source_metadata_transformation_date=None)
+            meta_obj.first.return_value = target_data_dict
+            return_from_function = get_target_metadata_for_validation()
+            self.assertEqual(meta_obj.first.return_value,
+                             return_from_function)
 
-    @data(({'abc': [1, 2, 3]}), ({'xyz': [1, 2, 3, 4, 5]}))
-    def test_flatten_dict_object_list(self, value):
-        """Test the function to flatten dictionary object when input value is
-        a list"""
-        prefix = 'test'
-        flatten_dict = []
-        with patch('core.management.utils.xia_internal.flatten_list_object') \
-                as mock_flatten_list, \
-                patch('core.management.utils.xia_internal.flatten_dict_'
-                      'object') as mock_flatten_dict, \
-                patch('core.management.utils.xia_internal.update_flattened_'
-                      'object') as mock_update_flattened:
-            mock_flatten_list.return_value = mock_flatten_list
-            mock_flatten_list.return_value = None
-            mock_flatten_dict.return_value = mock_flatten_dict
-            mock_flatten_dict.return_value = None
-            mock_update_flattened.return_value = mock_update_flattened
-            mock_update_flattened.return_value = None
+    def test_validate_target_using_key_more_than_one(self):
+        """Test to Validating target data against required & recommended
+        column names for more than one row"""
+        data = [{1: self.target_metadata}, {2: self.target_metadata}]
+        test_required_column_names = {
+            'CourseInstance.EndDate', 'CourseInstance.DeliveryMode',
+            'CourseInstance.CourseCode', 'CourseInstance.Instructor',
+            'Course.CourseProviderName', 'Course.CourseDescription',
+            'Course.CourseShortDescription', 'CourseInstance.StartDate',
+            'Course.CourseCode', 'CourseInstance.CourseTitle ',
+            'General_Information.StartDate', 'Course.CourseSubjectMatter',
+            'General_Information.EndDate', 'Course.CourseTitle'}
+        recommended_column_name = {'Technical_Information.Thumbnail',
+                                   'CourseInstance.Thumbnail'}
+        with patch('core.management.commands.validate_target_metadata'
+                   '.get_target_metadata_key_value',
+                   return_value=None) as mock_get_target_kv, \
+                patch('core.management.commands.validate_target_metadata'
+                      '.store_target_metadata_validation_status',
+                      return_value=None) as mock_store_target_valid_status:
+            mock_get_target_kv.return_value = mock_get_target_kv
+            mock_get_target_kv.exclude.return_value = mock_get_target_kv
+            mock_get_target_kv.filter.side_effect = [
+                mock_get_target_kv, mock_get_target_kv]
 
-            flatten_dict_object(value, prefix, flatten_dict,
-                                self.test_required_column_names)
+            validate_target_using_key(data, test_required_column_names,
+                                      recommended_column_name)
+            self.assertEqual(
+                mock_store_target_valid_status.call_count, 2)
 
-            self.assertEqual(mock_flatten_list.call_count, 1)
+    def test_validate_target_using_key_zero(self):
+        """Validating target data against required & recommended column names
+        with no data"""
 
-    @data(({'abc': 'A'}), ({'xyz': 'B'}))
-    def test_flatten_dict_object_str(self, value):
-        """Test the function to flatten dictionary object when input value is
-        a string"""
-        prefix = 'test'
-        flatten_dict = []
-        with patch('core.management.utils.xia_internal.flatten_list_object') \
-                as mock_flatten_list, \
-                patch('core.management.utils.xia_internal.flatten_dict_'
-                      'object') as mock_flatten_dict, \
-                patch('core.management.utils.xia_internal.update_flattened_'
-                      'object') as mock_update_flattened:
-            mock_flatten_list.return_value = mock_flatten_list
-            mock_flatten_list.return_value = None
-            mock_flatten_dict.return_value = mock_flatten_dict
-            mock_flatten_dict.return_value = None
-            mock_update_flattened.return_value = mock_update_flattened
-            mock_update_flattened.return_value = None
+        data = []
+        test_required_column_names = {
+            'CourseInstance.EndDate', 'CourseInstance.DeliveryMode',
+            'CourseInstance.CourseCode', 'CourseInstance.Instructor',
+            'Course.CourseProviderName', 'Course.CourseDescription',
+            'Course.CourseShortDescription', 'CourseInstance.StartDate',
+            'Course.CourseCode', 'CourseInstance.CourseTitle ',
+            'General_Information.StartDate', 'Course.CourseSubjectMatter',
+            'General_Information.EndDate', 'Course.CourseTitle'}
+        recommended_column_name = {'Technical_Information.Thumbnail',
+                                   'CourseInstance.Thumbnail'}
+        with patch('core.management.commands.validate_target_metadata'
+                   '.get_target_metadata_key_value',
+                   return_value=None) as mock_get_target_kv, \
+                patch('core.management.commands.validate_target_metadata'
+                      '.store_target_metadata_validation_status',
+                      return_value=None) as mock_store_target_valid_status:
+            mock_get_target_kv.return_value = mock_get_target_kv
+            mock_get_target_kv.exclude.return_value = mock_get_target_kv
+            mock_get_target_kv.filter.side_effect = [
+                mock_get_target_kv, mock_get_target_kv]
 
-            flatten_dict_object(value, prefix, flatten_dict,
-                                self.test_required_column_names)
+            validate_target_using_key(data, test_required_column_names,
+                                      recommended_column_name)
 
-            self.assertEqual(mock_update_flattened.call_count, 1)
+            self.assertEqual(mock_store_target_valid_status.call_count, 0)
 
-    @data('', 'str1')
-    def test_update_flattened_object(self, value):
-        """Test the function which returns the source bucket name"""
-        prefix = 'test'
-        flatten_dict = {}
-        update_flattened_object(value, prefix, flatten_dict)
-        self.assertTrue(flatten_dict)
+    # Test cases for load_target_metadata
 
-    @data(('int', '1234'), ('bool', 'Yes'))
-    @unpack
-    def test_type_cast_overwritten_values(self, first_value, second_value):
-        """Test the function to check type of overwritten value and convert it
-        into required format"""
-        field_type = first_value
-        field_value = second_value
-        values = type_cast_overwritten_values(field_type, field_value)
-        self.assertTrue(values)
+    def test_rename_metadata_ledger_fields(self):
+        """Test for Renaming XIA column names to match with XIS column names"""
+        with patch('core.management.utils.xia_internal'
+                   '.get_publisher_detail'), \
+                patch('core.management.utils.xia_internal'
+                      '.XIAConfiguration.objects') as xisCfg:
+            xiaConfig = XIAConfiguration(publisher='JKO')
+            xisCfg.first.return_value = xiaConfig
+            return_data = rename_metadata_ledger_fields(self.xia_data)
+            self.assertEquals(self.xis_expected_data['metadata_hash'],
+                              return_data['metadata_hash'])
+            self.assertEquals(self.xis_expected_data['metadata_key'],
+                              return_data['metadata_key'])
+            self.assertEquals(self.xis_expected_data['metadata_key_hash'],
+                              return_data['metadata_key_hash'])
+            self.assertEquals(self.xis_expected_data['provider_name'],
+                              return_data['provider_name'])
 
-    # Test cases for XIS_CLIENT
+    def test_get_records_to_load_into_xis_one_record(self):
+        """Test to Retrieve number of Metadata_Ledger records in XIA to load
+        into XIS  and calls the post_data_to_xis accordingly"""
+        with patch('core.management.commands.load_target_metadata'
+                   '.post_data_to_xis', return_value=None)as \
+                mock_post_data_to_xis, \
+                patch('core.management.commands.load_target_metadata'
+                      '.MetadataLedger.objects') as meta_obj:
+            meta_data = MetadataLedger(
+                record_lifecycle_status='Active',
+                source_metadata=self.source_metadata,
+                target_metadata=self.target_metadata,
+                target_metadata_hash=self.target_hash_value,
+                target_metadata_key_hash=self.target_key_value_hash,
+                target_metadata_key=self.target_key_value,
+                source_metadata_transformation_date=timezone.now(),
+                target_metadata_validation_status='Y',
+                source_metadata_validation_status='Y',
+                target_metadata_transmission_status='Ready')
+            meta_obj.return_value = meta_obj
+            meta_obj.exclude.return_value = meta_obj
+            meta_obj.values.return_value = [meta_data]
+            meta_obj.filter.side_effect = [meta_obj, meta_obj]
+            get_records_to_load_into_xis()
+            self.assertEqual(
+                mock_post_data_to_xis.call_count, 1)
 
-    def test_get_xis_metadata_api_endpoint(self):
-        """Test to retrieve xis_metadata_api_endpoint from XIS configuration"""
-        with patch('core.management.utils.xis_client'
-                   '.XISConfiguration.objects') as xisCfg:
+    def test_get_records_to_load_into_xis_zero(self):
+        """Test to Retrieve number of Metadata_Ledger records in XIA to load
+        into XIS  and calls the post_data_to_xis accordingly"""
+        with patch('core.management.commands.load_target_metadata'
+                   '.post_data_to_xis', return_value=None)as \
+                mock_post_data_to_xis, \
+                patch('core.management.commands.load_target_metadata'
+                      '.MetadataLedger.objects') as meta_obj:
+            meta_obj.return_value = meta_obj
+            meta_obj.exclude.return_value = meta_obj
+            meta_obj.filter.side_effect = [meta_obj, meta_obj]
+            get_records_to_load_into_xis()
+            self.assertEqual(
+                mock_post_data_to_xis.call_count, 0)
+
+    def test_post_data_to_xis_zero(self):
+        """Test for POSTing XIA metadata_ledger to XIS metadata_ledger
+        when data is not present"""
+        data = []
+        with patch('core.management.commands.load_target_metadata'
+                   '.rename_metadata_ledger_fields',
+                   return_value=self.xis_expected_data), \
+                patch('core.management.utils.xia_internal'
+                      '.get_publisher_detail'), \
+                patch('core.management.utils.xia_internal'
+                      '.XIAConfiguration.objects') as xiaCfg, \
+                patch('core.management.commands.load_target_metadata'
+                      '.MetadataLedger.objects') as meta_obj, \
+                patch('requests.post') as response_obj, \
+                patch('core.management.commands.load_target_metadata'
+                      '.get_records_to_load_into_xis',
+                      return_value=None) as mock_check_records_to_load:
+            xiaConfig = XIAConfiguration(publisher='JKO')
+            xiaCfg.first.return_value = xiaConfig
+            response_obj.return_value = response_obj
+            response_obj.status_code = 201
+
+            meta_obj.return_value = meta_obj
+            meta_obj.exclude.return_value = meta_obj
+            meta_obj.update.return_value = meta_obj
+            meta_obj.filter.side_effect = [meta_obj, meta_obj, meta_obj,
+                                           meta_obj]
+
+            post_data_to_xis(data)
+            self.assertEqual(response_obj.call_count, 0)
+            self.assertEqual(mock_check_records_to_load.call_count, 1)
+
+    def test_post_data_to_xis_more_than_one(self):
+        """Test for POSTing XIA metadata_ledger to XIS metadata_ledger
+        when more than one rows are passing"""
+        data = [self.xia_data,
+                self.xia_data]
+        with patch('core.management.commands.load_target_metadata'
+                   '.rename_metadata_ledger_fields',
+                   return_value=self.xis_expected_data), \
+                patch('core.management.utils.xia_internal'
+                      '.get_publisher_detail'), \
+                patch('core.management.utils.xia_internal'
+                      '.XIAConfiguration.objects') as xiaCfg, \
+                patch('core.management.commands.load_target_metadata'
+                      '.MetadataLedger.objects') as meta_obj, \
+                patch('requests.post') as response_obj, \
+                patch('core.management.utils.xis_client'
+                      '.XISConfiguration.objects') as xisCfg, \
+                patch('core.management.commands.load_target_metadata'
+                      '.get_records_to_load_into_xis',
+                      return_value=None) as mock_check_records_to_load:
+            xiaConfig = XIAConfiguration(publisher='JKO')
+            xiaCfg.first.return_value = xiaConfig
             xisConfig = XISConfiguration(
                 xis_metadata_api_endpoint=self.xis_api_endpoint_url)
             xisCfg.first.return_value = xisConfig
-            return_from_function = get_xis_metadata_api_endpoint()
-            self.assertEqual(xisConfig.xis_metadata_api_endpoint,
-                             return_from_function)
+            response_obj.return_value = response_obj
+            response_obj.status_code = 201
 
-    def test_get_xis_supplemental_metadata_api_endpoint(self):
-        """Test to retrieve xis_supplemental_api_endpoint from XIS
-        configuration"""
-        with patch('core.management.utils.xis_client'
-                   '.XISConfiguration.objects') as xisCfg:
-            xisConfig = XISConfiguration(
-                xis_supplemental_api_endpoint=self.supplemental_api_endpoint)
+            meta_obj.return_value = meta_obj
+            meta_obj.exclude.return_value = meta_obj
+            meta_obj.update.return_value = meta_obj
+            meta_obj.filter.side_effect = [meta_obj, meta_obj, meta_obj,
+                                           meta_obj]
+
+            post_data_to_xis(data)
+            self.assertEqual(response_obj.call_count, 2)
+            self.assertEqual(mock_check_records_to_load.call_count, 1)
+
+        # Test cases for load_supplemental_metadata
+
+    def test_rename_supplemental_metadata_fields(self):
+        """Test for Renaming XIA column names to match with XIS column names"""
+        with patch('core.management.utils.xia_internal'
+                   '.get_publisher_detail'), \
+                patch('core.management.utils.xia_internal'
+                      '.XIAConfiguration.objects') as xisCfg:
+            xiaConfig = XIAConfiguration(publisher='JKO')
+            xisCfg.first.return_value = xiaConfig
+            return_data = rename_supplemental_metadata_fields(
+                self.xia_supplemental_data)
+            self.assertEquals(
+                self.xis_supplemental_expected_data['metadata_hash'],
+                return_data['metadata_hash'])
+            self.assertEquals(
+                self.xis_supplemental_expected_data['metadata_key'],
+                return_data['metadata_key'])
+            self.assertEquals(
+                self.xis_supplemental_expected_data['metadata_key_hash'],
+                return_data['metadata_key_hash'])
+            self.assertEquals(
+                self.xis_supplemental_expected_data['provider_name'],
+                return_data['provider_name'])
+
+    def test_load_supplemental_metadata_to_xis_one_record(self):
+        """Test to Retrieve number of Metadata_Ledger records in XIA to load
+        into XIS  and calls the post_data_to_xis accordingly"""
+        with patch('core.management.commands.load_supplemental_metadata'
+                   '.post_supplemental_metadata_to_xis', return_value=None)as \
+                mock_post_data_to_xis, \
+                patch('core.management.commands.load_supplemental_metadata'
+                      '.SupplementalLedger.objects') as meta_obj:
+            meta_data = SupplementalLedger(
+                record_lifecycle_status='Active',
+                supplemental_metadata=self.supplemental_data,
+                supplemental_metadata_hash=self.target_hash_value,
+                supplemental_metadata_key_hash=self.target_key_value_hash,
+                supplemental_metadata_key=self.target_key_value,
+                supplemental_metadata_transmission_date=timezone.now(),
+                supplemental_metadata_transmission_status='Ready')
+            meta_obj.return_value = meta_obj
+            meta_obj.exclude.return_value = meta_obj
+            meta_obj.values.return_value = [meta_data]
+            meta_obj.filter.side_effect = [meta_obj, meta_obj]
+            load_supplemental_metadata_to_xis()
+            self.assertEqual(
+                mock_post_data_to_xis.call_count, 1)
+
+    def test_load_supplemental_metadata_to_xis_zero(self):
+        """Test to Retrieve number of Metadata_Ledger records in XIA to load
+        into XIS  and calls the post_data_to_xis accordingly"""
+        with patch('core.management.commands.load_supplemental_metadata'
+                   '.post_supplemental_metadata_to_xis', return_value=None)as \
+                mock_post_data_to_xis, \
+                patch('core.management.commands.load_supplemental_metadata'
+                      '.SupplementalLedger.objects') as meta_obj:
+            meta_obj.return_value = meta_obj
+            meta_obj.exclude.return_value = meta_obj
+            meta_obj.filter.side_effect = [meta_obj, meta_obj]
+            load_supplemental_metadata_to_xis()
+            self.assertEqual(
+                mock_post_data_to_xis.call_count, 0)
+
+    def test_post_supplemental_metadata_to_xis_zero(self):
+        """Test for POSTing XIA metadata_ledger to XIS metadata_ledger
+        when data is not present"""
+        data = []
+        with patch('core.management.commands.load_supplemental_metadata'
+                   '.rename_supplemental_metadata_fields',
+                   return_value=self.xis_expected_data), \
+                patch('core.management.utils.xia_internal'
+                      '.get_publisher_detail'), \
+                patch('core.management.utils.xia_internal'
+                      '.XIAConfiguration.objects') as xiaCfg, \
+                patch('core.management.commands.load_supplemental_metadata'
+                      '.SupplementalLedger.objects') as meta_obj, \
+                patch('requests.post') as response_obj, \
+                patch('core.management.commands.load_supplemental_metadata'
+                      '.load_supplemental_metadata_to_xis',
+                      return_value=None) as mock_check_records_to_load:
+            xiaConfig = XIAConfiguration(publisher='JKO')
+            xiaCfg.first.return_value = xiaConfig
+            response_obj.return_value = response_obj
+            response_obj.status_code = 201
+
+            meta_obj.return_value = meta_obj
+            meta_obj.exclude.return_value = meta_obj
+            meta_obj.update.return_value = meta_obj
+            meta_obj.filter.side_effect = [meta_obj, meta_obj, meta_obj,
+                                           meta_obj]
+
+            post_supplemental_metadata_to_xis(data)
+            self.assertEqual(response_obj.call_count, 0)
+            self.assertEqual(mock_check_records_to_load.call_count, 1)
+
+    def test_post_supplemental_metadata_to_xis_more_than_one(self):
+        """Test for POSTing XIA metadata_ledger to XIS metadata_ledger
+        when more than one rows are passing"""
+        data = [self.xia_supplemental_data,
+                self.xia_supplemental_data]
+        with patch('core.management.commands.load_supplemental_metadata'
+                   '.rename_supplemental_metadata_fields',
+                   return_value=self.xis_expected_data), \
+                patch('core.management.utils.xia_internal'
+                      '.get_publisher_detail'), \
+                patch('core.management.utils.xia_internal'
+                      '.XIAConfiguration.objects') as xiaCfg, \
+                patch('core.management.commands.load_supplemental_metadata'
+                      '.SupplementalLedger.objects') as meta_obj, \
+                patch('requests.post') as response_obj, \
+                patch('core.management.utils.xis_client'
+                      '.XISConfiguration.objects') as xisCfg, \
+                patch('core.management.commands.load_supplemental_metadata'
+                      '.load_supplemental_metadata_to_xis',
+                      return_value=None) as mock_check_records_to_load:
+            xiaConfig = XIAConfiguration(publisher='JKO')
+            xiaCfg.first.return_value = xiaConfig
+            xisConfig = \
+                XISConfiguration(xis_metadata_api_endpoint=self.
+                                 supplemental_api_endpoint)
             xisCfg.first.return_value = xisConfig
-            return_from_function = get_xis_supplemental_metadata_api_endpoint()
-            self.assertEqual(xisConfig.xis_supplemental_api_endpoint,
-                             return_from_function)
+            response_obj.return_value = response_obj
+            response_obj.status_code = 201
 
-    # Test cases for XSS_CLIENT
+            meta_obj.return_value = meta_obj
+            meta_obj.exclude.return_value = meta_obj
+            meta_obj.update.return_value = meta_obj
+            meta_obj.filter.side_effect = [meta_obj, meta_obj, meta_obj,
+                                           meta_obj]
 
-    def test_get_aws_bucket_name(self):
-        """Test the function which returns the source bucket name"""
-        result_bucket = get_aws_bucket_name()
-        self.assertTrue(result_bucket)
+            post_supplemental_metadata_to_xis(data)
+            self.assertEqual(response_obj.call_count, 2)
+            self.assertEqual(mock_check_records_to_load.call_count, 1)
 
-    def test_get_source_validation_schema(self):
-        """Test to retrieve source_metadata_schema from XIA configuration"""
-        with patch('core.management.utils.xss_client'
-                   '.XIAConfiguration.objects') as xdsCfg, \
-                patch('core.management.utils.xss_client'
-                      '.read_json_data') as read_obj:
-            xiaConfig = XIAConfiguration(
-                source_metadata_schema='JKO_source_validate_schema.json')
-            xdsCfg.return_value = xiaConfig
-            read_obj.return_value = read_obj
-            read_obj.return_value = self.schema_data_dict
-            return_from_function = get_source_validation_schema()
-            self.assertEqual(read_obj.return_value,
-                             return_from_function)
+    # Test cases for conformance_alerts
 
-    def test_get_required_fields_for_validation(self):
-        """Test for Creating list of fields which are Required """
-
-        required_column_name, recommended_column_name = \
-            get_required_fields_for_validation(self.schema_data_dict)
-
-        self.assertTrue(required_column_name)
-        self.assertTrue(recommended_column_name)
-
-    def test_get_target_validation_schema(self):
-        """Test to retrieve target_metadata_schema from XIA configuration"""
-        with patch('core.management.utils.xss_client'
-                   '.XIAConfiguration.objects') as xiaconfigobj, \
-                patch('core.management.utils.xss_client'
-                      '.read_json_data') as read_obj:
-            xiaConfig = XIAConfiguration(
-                target_metadata_schema='p2881_target_validation_schema.json')
-            xiaconfigobj.return_value = xiaConfig
-            read_obj.return_value = read_obj
-            read_obj.return_value = self.schema_data_dict
-            return_from_function = get_target_validation_schema()
-            self.assertEqual(read_obj.return_value,
-                             return_from_function)
-
-    def test_get_target_metadata_for_transformation(self):
-        """Test to retrieve target metadata schema from XIA configuration """
-        with patch('core.management.utils.xss_client'
-                   '.XIAConfiguration.objects') as xia_config_obj, \
-                patch('core.management.utils.xss_client'
-                      '.read_json_data') as read_obj:
-            xiaConfig = XIAConfiguration(
-                source_target_mapping='JKO_p2881_target_metadata_schema.json')
-            xia_config_obj.return_value = xiaConfig
-            read_obj.return_value = read_obj
-            read_obj.return_value = self.target_data_dict
-            return_from_function = get_target_metadata_for_transformation()
-            self.assertEqual(read_obj.return_value,
-                             return_from_function)
-
-    # Test cases for NOTIFICATION
-    def test_send_notifications(self):
+    def test_send_log_email(self):
         """Test for function to send emails of log file to personas"""
-        with patch('core.management.utils.notification'
-                   '.EmailMessage') as mock_send, \
-                patch('core.management.utils.notification'
-                      '.boto3.client'):
-            send_notifications(self.receive_email_list, self.sender_email)
-            self.assertEqual(mock_send.call_count, 2)
+        with patch('core.management.commands.conformance_alerts'
+                   '.ReceiverEmailConfiguration') as receive_email_cfg, \
+                patch('core.management.commands.conformance_alerts'
+                      '.SenderEmailConfiguration') as sender_email_cfg, \
+                patch('core.management.commands.conformance_alerts'
+                      '.send_notifications', return_value=None
+                      ) as mock_send_notification:
+            receive_email = ReceiverEmailConfiguration(
+                email_address=self.receive_email_list)
+            receive_email_cfg.first.return_value = receive_email
+
+            send_email = SenderEmailConfiguration(
+                sender_email_address=self.sender_email)
+            sender_email_cfg.first.return_value = send_email
+            send_log_email()
+            self.assertEqual(mock_send_notification.call_count, 1)
