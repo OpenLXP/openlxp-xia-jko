@@ -11,17 +11,17 @@ from core.management.utils.xia_internal import (dict_flatten,
                                                 flatten_list_object,
                                                 get_key_dict,
                                                 get_publisher_detail,
-                                                get_source_metadata_key_value,
                                                 get_target_metadata_key_value,
                                                 replace_field_on_target_schema,
-                                                type_cast_overwritten_values,
-                                                update_flattened_object)
+                                                update_flattened_object,
+                                                type_cast_overwritten_values)
 from core.management.utils.xis_client import (
     get_xis_metadata_api_endpoint, get_xis_supplemental_metadata_api_endpoint)
 from core.management.utils.xss_client import (
     get_aws_bucket_name, get_required_fields_for_validation,
     get_source_validation_schema, get_target_metadata_for_transformation,
     get_target_validation_schema)
+from core.management.utils.xsr_client import (get_source_metadata_key_value)
 from core.models import XIAConfiguration, XISConfiguration
 
 from .test_setup import TestSetUp
