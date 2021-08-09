@@ -5,7 +5,7 @@ import pandas as pd
 
 from core.models import XSRConfiguration
 
-from core.management.utils.xia_internal import get_key_dict
+from django_openlxp_xia.management.utils.xia_internal import get_key_dict
 
 logger = logging.getLogger('dict_config_logger')
 
