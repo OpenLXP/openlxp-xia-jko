@@ -4,13 +4,13 @@ import logging
 
 import pandas as pd
 from django.core.management.base import BaseCommand
-
 from django_openlxp_xia.management.utils.xia_internal import (
     convert_date_to_isoformat, get_publisher_detail,
     type_cast_overwritten_values)
-from core.management.utils.xsr_client import read_source_file, \
-    get_source_metadata_key_value
 from django_openlxp_xia.models import MetadataFieldOverwrite, MetadataLedger
+
+from core.management.utils.xsr_client import (get_source_metadata_key_value,
+                                              read_source_file)
 
 logger = logging.getLogger('dict_config_logger')
 

@@ -6,15 +6,12 @@ from ddt import ddt
 from django.core.management import call_command
 from django.db.utils import OperationalError
 from django.test import tag
+from django_openlxp_xia.models import MetadataFieldOverwrite, XIAConfiguration
 
 from core.management.commands.extract_source_metadata import (
     add_publisher_to_source, extract_metadata_using_key,
     get_metadata_fields_to_overwrite, get_source_metadata,
     overwrite_append_metadata, overwrite_metadata_field)
-
-
-from django_openlxp_xia.models import (MetadataFieldOverwrite,
-                                       XIAConfiguration)
 
 from .test_setup import TestSetUp
 

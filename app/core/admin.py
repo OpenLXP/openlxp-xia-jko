@@ -1,7 +1,6 @@
 from django.contrib import admin
 
-from .models import (XSRConfiguration)
-
+from .models import XSRConfiguration
 
 # Register your models here.
 
