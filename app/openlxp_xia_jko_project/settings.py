@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'core',
+    'openlxp_xia',
     'django_celery_beat',
     'django_celery_results',
 ]
@@ -91,7 +92,7 @@ DATABASES = {
         'PORT': 3306,
     }
 }
-
+DEFAULT_AUTO_FIELD='django.db.models.AutoField'
 REST_FRAMEWORK = {
     # Use Django's standard `django.contrib.auth` permissions,
     # or allow read-only access for unauthenticated users.
@@ -158,7 +159,7 @@ CACHES = {
         'LOCATION': 'my_cache_table',
     }
 }
-
+EMAIL_BACKEND = 'django_ses.SESBackend'
 LOG_PATH = os.environ.get('LOG_PATH')
 LOGGING = {
     'version': 1,
