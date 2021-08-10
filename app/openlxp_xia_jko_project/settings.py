@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'core',
-    'django_openlxp_xia',
+    'openlxp_xia',
     'django_celery_beat',
     'django_celery_results',
 ]

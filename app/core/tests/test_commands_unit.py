@@ -6,7 +6,7 @@ from ddt import ddt
 from django.core.management import call_command
 from django.db.utils import OperationalError
 from django.test import tag
-from django_openlxp_xia.models import MetadataFieldOverwrite, XIAConfiguration
+from openlxp_xia.models import MetadataFieldOverwrite, XIAConfiguration
 
 from core.management.commands.extract_source_metadata import (
     add_publisher_to_source, extract_metadata_using_key,
@@ -57,9 +57,9 @@ class CommandTests(TestSetUp):
     def test_add_publisher_to_source(self):
         """Test for Add publisher column to source metadata and return
         source metadata"""
-        with patch('django_openlxp_xia.management.utils.xia_internal'
+        with patch('openlxp_xia.management.utils.xia_internal'
                    '.get_publisher_detail'), \
-                patch('django_openlxp_xia.management.utils.xia_internal'
+                patch('openlxp_xia.management.utils.xia_internal'
                       '.XIAConfiguration.objects') as xisCfg:
             xiaConfig = XIAConfiguration(publisher='JKO')
             xisCfg.first.return_value = xiaConfig

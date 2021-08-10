@@ -2,7 +2,7 @@ import hashlib
 import logging
 
 import pandas as pd
-from django_openlxp_xia.management.utils.xia_internal import get_key_dict
+from openlxp_xia.management.utils.xia_internal import get_key_dict
 
 from core.models import XSRConfiguration
 
